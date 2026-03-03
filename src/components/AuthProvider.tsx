@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 // Public routes that don't require auth
-const PUBLIC_ROUTES = ["/login", "/signup"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/landing", "/"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -55,9 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isPublic = PUBLIC_ROUTES.includes(pathname);
 
         if (!user && !isPublic) {
-            router.replace("/login");
+            router.replace("/landing");
         } else if (user && isPublic) {
-            router.replace("/");
+            router.replace("/dashboard");
         }
     }, [user, loading, pathname, router]);
 

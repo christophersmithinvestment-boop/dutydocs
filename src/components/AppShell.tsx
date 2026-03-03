@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
-const AUTH_PAGES = ["/login", "/signup"];
+const AUTH_PAGES = ["/login", "/signup", "/landing"];
 
 export function AppShell({ children }: { children: ReactNode }) {
     const pathname = usePathname();

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 const tabs = [
-    { href: "/", label: "Home", icon: Home },
+    { href: "/dashboard", label: "Home", icon: Home },
     { href: "/risk-assessment", label: "Assess", icon: ClipboardCheck },
     { href: "/incidents", label: "Report", icon: AlertTriangle },
     { href: "/inspections", label: "Inspect", icon: Search },
