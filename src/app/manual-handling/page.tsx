@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Dumbbell, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, Dumbbell, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface ManualHandlingAssessment {
     id: string;
@@ -56,6 +57,39 @@ export default function ManualHandlingPage() {
     };
 
     const handleDelete = (id: string) => { const updated = items.filter((i) => i.id !== id); setItems(updated); saveToStore(STORE_KEY, updated); };
+
+    const handleExportPDF = (item: ManualHandlingAssessment) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Manual Handling Assessment", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Task Details");
+        pdf.addKeyValue("Task Description", item.taskDescription);
+        pdf.addKeyValue("Location", item.location);
+        pdf.addKeyValue("Assessor", item.assessor);
+        pdf.addKeyValue("Created", pdfDate(item.createdAt));
+        pdf.addKeyValue("Review Date", pdfDate(item.reviewDate));
+        pdf.addSection("Load Details");
+        pdf.addKeyValue("Load Weight", item.loadWeight);
+        pdf.addKeyValue("Load Description", item.loadDescription);
+        pdf.addKeyValue("Frequency", item.frequency);
+        pdf.addKeyValue("Distance", item.distance);
+        pdf.addSection("TILE Assessment");
+        pdf.addTextBlock("Task Factors", item.taskFactors);
+        pdf.addTextBlock("Individual Factors", item.individualFactors);
+        pdf.addTextBlock("Load Factors", item.loadFactors);
+        pdf.addTextBlock("Environment Factors", item.environmentFactors);
+        pdf.addSection("Initial Risk Rating");
+        pdf.addKeyValue("Likelihood", item.likelihood);
+        pdf.addKeyValue("Severity", item.severity);
+        pdf.addRiskBadge("Risk Level", item.riskLevel, item.likelihood * item.severity);
+        pdf.addSection("Control Measures");
+        pdf.addTextBlock("Controls", item.controlMeasures);
+        pdf.addSection("Residual Risk");
+        pdf.addKeyValue("Residual Likelihood", item.residualLikelihood);
+        pdf.addKeyValue("Residual Severity", item.residualSeverity);
+        pdf.addRiskBadge("Residual Risk", item.residualRiskLevel, item.residualLikelihood * item.residualSeverity);
+        const slug = item.taskDescription.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`manual-handling-${slug}.pdf`);
+    };
 
     if (showForm) {
         return (
@@ -168,6 +202,7 @@ export default function ManualHandlingPage() {
                                     </div>
                                     <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.loadWeight && `${item.loadWeight} · `}{item.location && `${item.location} · `}{formatDate(item.createdAt)}</p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
                         </div>

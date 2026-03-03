@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, HeartPulse, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, HeartPulse, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDateTime } from "@/lib/pdf-generator";
 
 interface FirstAidEntry {
     id: string;
@@ -48,6 +49,23 @@ export default function FirstAidPage() {
     };
 
     const handleDelete = (id: string) => { const updated = items.filter((i) => i.id !== id); setItems(updated); saveToStore(STORE_KEY, updated); };
+
+    const handleExportPDF = (item: FirstAidEntry) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("First Aid Record", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Incident Details");
+        pdf.addKeyValue("Date & Time", pdfDateTime(item.dateTime));
+        pdf.addKeyValue("Location", item.location);
+        pdf.addKeyValue("Patient Name", item.patientName);
+        pdf.addSection("Injury & Treatment");
+        pdf.addKeyValue("Injury/Illness", item.injuryIllness);
+        pdf.addTextBlock("Treatment Given", item.treatmentGiven);
+        pdf.addKeyValue("Administered By", item.administeredBy);
+        pdf.addStatusBadge("Outcome", item.outcome);
+        pdf.addSection("Follow-Up");
+        pdf.addTextBlock("Follow-Up Required", item.followUp);
+        pdf.save(`first-aid-${item.id.split("-")[0]}.pdf`);
+    };
 
     const outcomeBadge = (o: string) => {
         switch (o) {
@@ -123,6 +141,7 @@ export default function FirstAidPage() {
                                     </div>
                                     <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.injuryIllness && `${item.injuryIllness} · `}{formatDate(item.createdAt)}</p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
                         </div>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Megaphone, ArrowLeft, Trash2, Users } from "lucide-react";
+import { Plus, Megaphone, ArrowLeft, Trash2, Users, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface ToolboxTalk {
     id: string;
@@ -60,6 +61,28 @@ export default function ToolboxTalksPage() {
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         saveToStore(STORE_KEY, updated);
+    };
+
+    const handleExportPDF = (item: ToolboxTalk) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Toolbox Talk Record", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Talk Details");
+        pdf.addKeyValue("Topic", item.topic);
+        pdf.addKeyValue("Presenter", item.presenter);
+        pdf.addKeyValue("Date", pdfDate(item.date));
+        pdf.addKeyValue("Duration", item.duration);
+        pdf.addSection("Key Points");
+        pdf.addTextBlock("Points Covered", item.keyPoints);
+        pdf.addSection("Attendees");
+        if (item.attendees.length > 0) {
+            pdf.addTable(
+                ["#", "Name"],
+                item.attendees.map((a, i) => [String(i + 1), a]),
+                [15, 155]
+            );
+        }
+        const slug = item.topic.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`toolbox-talk-${slug}.pdf`);
     };
 
     if (showForm) {
@@ -198,6 +221,9 @@ export default function ToolboxTalksPage() {
                                         )}
                                     </div>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                    <FileDown size={16} />
+                                </button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
                                     <Trash2 size={16} />
                                 </button>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Monitor, ArrowLeft, Trash2, Check, X, Minus } from "lucide-react";
+import { Plus, Monitor, ArrowLeft, Trash2, Check, X, Minus, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface DSEItem {
     id: string;
@@ -151,6 +152,26 @@ export default function DSEPage() {
 
     const handleDelete = (id: string) => { const updated = items.filter((i) => i.id !== id); setItems(updated); saveToStore(STORE_KEY, updated); };
 
+    const handleExportPDF = (item: DSEAssessment) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("DSE Assessment", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Assessment Details");
+        pdf.addKeyValue("Employee", item.employeeName);
+        pdf.addKeyValue("Department", item.department);
+        pdf.addKeyValue("Workstation Location", item.workstationLocation);
+        pdf.addKeyValue("Assessor", item.assessorName);
+        pdf.addKeyValue("Date", pdfDate(item.date));
+        pdf.addKeyValue("Score", `${item.score}%`);
+        for (const cat of item.categories) {
+            pdf.addChecklistTable(cat.name, cat.items.map((i) => ({ label: i.label, status: i.status, notes: i.notes })));
+        }
+        pdf.addSection("Additional Notes & Actions");
+        pdf.addTextBlock("Additional Notes", item.additionalNotes);
+        pdf.addTextBlock("Action Required", item.actionRequired);
+        const slug = item.employeeName.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`dse-assessment-${slug}.pdf`);
+    };
+
     const statusIcon = (s: DSEItem["status"]) => { switch (s) { case "pass": return <Check size={14} />; case "fail": return <X size={14} />; case "na": return <Minus size={14} />; default: return null; } };
     const statusColor = (s: DSEItem["status"]) => { switch (s) { case "pass": return "var(--color-safety-green)"; case "fail": return "var(--color-safety-red)"; case "na": return "var(--color-text-muted)"; default: return "var(--color-border-light)"; } };
 
@@ -239,6 +260,7 @@ export default function DSEPage() {
                                     <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.employeeName}</p>
                                     <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.workstationLocation && `${item.workstationLocation} · `}{formatDate(item.createdAt)}</p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
                         </div>

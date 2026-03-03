@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, HardHat, ArrowLeft, Trash2, AlertCircle } from "lucide-react";
+import { Plus, HardHat, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface PPERecord {
     id: string;
@@ -51,6 +52,25 @@ export default function PPERegisterPage() {
     };
 
     const handleDelete = (id: string) => { const updated = items.filter((i) => i.id !== id); setItems(updated); saveToStore(STORE_KEY, updated); };
+
+    const handleExportPDF = (item: PPERecord) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("PPE Record", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Equipment Details");
+        pdf.addKeyValue("PPE Type", item.ppeType);
+        pdf.addKeyValue("Manufacturer", item.manufacturer);
+        pdf.addKeyValue("Serial Number", item.serialNumber);
+        pdf.addSection("Assignment");
+        pdf.addKeyValue("Employee", item.employeeName);
+        pdf.addKeyValue("Department", item.department);
+        pdf.addKeyValue("Date Issued", pdfDate(item.dateIssued));
+        pdf.addSection("Condition & Expiry");
+        pdf.addStatusBadge("Condition", item.condition);
+        pdf.addKeyValue("Expiry Date", pdfDate(item.expiryDate));
+        pdf.addKeyValue("Last Inspected", pdfDate(item.lastInspected));
+        pdf.addTextBlock("Notes", item.notes);
+        pdf.save(`ppe-record-${item.id.split("-")[0]}.pdf`);
+    };
 
     const isExpired = (date: string) => date && new Date(date) < new Date();
     const isExpiringSoon = (date: string) => {
@@ -137,6 +157,7 @@ export default function PPERegisterPage() {
                                         {item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
                                     </p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
                         </div>

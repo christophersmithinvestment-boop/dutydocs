@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, GraduationCap, ArrowLeft, Trash2, AlertCircle } from "lucide-react";
+import { Plus, GraduationCap, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface TrainingRecord {
     id: string;
@@ -71,6 +72,24 @@ export default function TrainingRecordsPage() {
     };
 
     const handleDelete = (id: string) => { const updated = items.filter((i) => i.id !== id); setItems(updated); saveToStore(STORE_KEY, updated); };
+
+    const handleExportPDF = (item: TrainingRecord) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Training Record", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Employee Details");
+        pdf.addKeyValue("Employee", item.employeeName);
+        pdf.addKeyValue("Department", item.department);
+        pdf.addSection("Course Details");
+        pdf.addKeyValue("Course Name", item.courseName);
+        pdf.addKeyValue("Course Type", item.courseType);
+        pdf.addKeyValue("Provider", item.provider);
+        pdf.addKeyValue("Date Completed", pdfDate(item.dateCompleted));
+        pdf.addKeyValue("Expiry Date", pdfDate(item.expiryDate));
+        pdf.addKeyValue("Certificate Ref", item.certificateRef);
+        pdf.addStatusBadge("Status", item.status);
+        pdf.addTextBlock("Notes", item.notes);
+        pdf.save(`training-record-${item.id.split("-")[0]}.pdf`);
+    };
 
     const statusBadge = (s: string) => { switch (s) { case "valid": return { class: "badge-green", label: "Valid" }; case "expiring": return { class: "badge-yellow", label: "Expiring Soon" }; case "expired": return { class: "badge-red", label: "Expired" }; case "pending": return { class: "badge-blue", label: "Pending" }; default: return { class: "badge-blue", label: s }; } };
 
@@ -158,6 +177,7 @@ export default function TrainingRecordsPage() {
                                         {item.employeeName}{item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
                                     </p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
                         </div>

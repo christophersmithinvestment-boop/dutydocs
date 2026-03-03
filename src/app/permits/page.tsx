@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, ShieldCheck, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, ShieldCheck, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface Permit {
     id: string;
@@ -66,6 +67,28 @@ export default function PermitsPage() {
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         saveToStore(STORE_KEY, updated);
+    };
+
+    const handleExportPDF = (item: Permit) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Permit to Work", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Permit Details");
+        pdf.addKeyValue("Permit Type", item.permitType);
+        pdf.addStatusBadge("Status", item.status);
+        pdf.addKeyValue("Requested By", item.requestedBy);
+        pdf.addKeyValue("Authorised By", item.authorisedBy);
+        pdf.addKeyValue("Location", item.location);
+        pdf.addKeyValue("Start Date", pdfDate(item.startDate));
+        pdf.addKeyValue("End Date", pdfDate(item.endDate));
+        pdf.addSection("Work Description");
+        pdf.addTextBlock("Description", item.description);
+        pdf.addTextBlock("Precautions", item.precautions);
+        pdf.addSection("Safety Checks");
+        pdf.addKeyValue("Isolation Required", item.isolationRequired);
+        pdf.addKeyValue("Gas Test Required", item.gasTestRequired);
+        pdf.addKeyValue("Rescue Plan in Place", item.rescuePlanInPlace);
+        const slug = item.permitType.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`permit-${slug}-${item.id.split("-")[0]}.pdf`);
     };
 
     const updateStatus = (id: string, status: Permit["status"]) => {
@@ -221,6 +244,9 @@ export default function PermitsPage() {
                                             → {nextStatus(item.status)?.toUpperCase()}
                                         </button>
                                     )}
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                        <FileDown size={16} />
+                                    </button>
                                     <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", color: "var(--color-safety-red)" }}>
                                         <Trash2 size={12} />
                                     </button>

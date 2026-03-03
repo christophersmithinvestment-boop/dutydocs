@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Flame, ArrowLeft, Trash2, Users, Clock } from "lucide-react";
+import { Plus, Flame, ArrowLeft, Trash2, Users, Clock, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface FireDrill {
     id: string;
@@ -50,6 +51,29 @@ export default function FireDrillPage() {
     };
 
     const handleDelete = (id: string) => { const updated = items.filter((i) => i.id !== id); setItems(updated); saveToStore(STORE_KEY, updated); };
+
+    const handleExportPDF = (item: FireDrill) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Fire Drill Record", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Drill Details");
+        pdf.addKeyValue("Date", pdfDate(item.date));
+        pdf.addKeyValue("Time", item.time);
+        pdf.addKeyValue("Location", item.location);
+        pdf.addKeyValue("Drill Type", item.drillType);
+        pdf.addKeyValue("Conducted By", item.conductedBy);
+        pdf.addStatusBadge("Outcome", item.outcome);
+        pdf.addSection("Evacuation Details");
+        pdf.addKeyValue("Alarm Activated By", item.alarmActivatedBy);
+        pdf.addKeyValue("Evacuation Time", item.evacuationTime);
+        pdf.addKeyValue("Total Evacuees", item.totalEvacuees);
+        pdf.addKeyValue("Assembly Point", item.assemblyPoint);
+        pdf.addKeyValue("All Accounted For", item.allAccountedFor);
+        pdf.addKeyValue("Fire Wardens", item.fireWardens);
+        pdf.addSection("Issues & Actions");
+        pdf.addTextBlock("Issues Identified", item.issuesIdentified);
+        pdf.addTextBlock("Corrective Actions", item.correctiveActions);
+        pdf.save(`fire-drill-${item.id.split("-")[0]}.pdf`);
+    };
 
     const outcomeBadge = (o: string) => { switch (o) { case "pass": return "badge-green"; case "fail": return "badge-red"; case "partial": return "badge-yellow"; default: return "badge-blue"; } };
 
@@ -143,6 +167,7 @@ export default function FireDrillPage() {
                                         {item.totalEvacuees && <span className="flex items-center gap-0.5"><Users size={10} /> {item.totalEvacuees}</span>}
                                     </p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
                         </div>

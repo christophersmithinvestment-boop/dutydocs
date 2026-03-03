@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, FlaskConical, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, FlaskConical, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface COSHHAssessment {
     id: string;
@@ -73,6 +74,31 @@ export default function COSHHPage() {
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         saveToStore(STORE_KEY, updated);
+    };
+
+    const handleExportPDF = (item: COSHHAssessment) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("COSHH Assessment", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Substance Details");
+        pdf.addKeyValue("Substance Name", item.substanceName);
+        pdf.addKeyValue("Manufacturer", item.manufacturer);
+        pdf.addKeyValue("Used For", item.usedFor);
+        pdf.addKeyValue("Location", item.location);
+        pdf.addKeyValue("Assessor", item.assessor);
+        pdf.addKeyValue("Created", pdfDate(item.createdAt));
+        pdf.addKeyValue("Review Date", pdfDate(item.reviewDate));
+        pdf.addSection("Hazard Information");
+        pdf.addTagList("GHS Hazard Symbols", item.hazardSymbols);
+        pdf.addTagList("Exposure Routes", item.exposureRoutes);
+        pdf.addTextBlock("Health Effects", item.healthEffects);
+        pdf.addSection("Controls & PPE");
+        pdf.addTextBlock("Control Measures", item.controlMeasures);
+        pdf.addTagList("PPE Required", item.ppeRequired);
+        pdf.addSection("Emergency & Storage");
+        pdf.addTextBlock("Emergency Procedures", item.emergencyProcedures);
+        pdf.addTextBlock("Storage Requirements", item.storageRequirements);
+        const slug = item.substanceName.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`coshh-${slug}.pdf`);
     };
 
     if (showForm) {
@@ -247,6 +273,9 @@ export default function COSHHPage() {
                                         </div>
                                     )}
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                    <FileDown size={16} />
+                                </button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
                                     <Trash2 size={16} />
                                 </button>

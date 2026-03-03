@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, ArrowLeft, Trash2, Check, X, Minus } from "lucide-react";
+import { Plus, Search, ArrowLeft, Trash2, Check, X, Minus, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface ChecklistItem {
     id: string;
@@ -135,6 +136,27 @@ export default function InspectionsPage() {
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         saveToStore(STORE_KEY, updated);
+    };
+
+    const handleExportPDF = (item: Inspection) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Site Inspection Report", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Inspection Details");
+        pdf.addKeyValue("Site Name", item.siteName);
+        pdf.addKeyValue("Inspector", item.inspectorName);
+        pdf.addKeyValue("Date", pdfDate(item.date));
+        pdf.addKeyValue("Overall Score", `${item.score}%`);
+        pdf.addKeyValue("Items Passed", `${item.totalPassed} / ${item.totalChecked}`);
+        for (const cat of item.categories) {
+            pdf.addChecklistTable(
+                cat.name,
+                cat.items.map((i) => ({ label: i.label, status: i.status, notes: i.notes }))
+            );
+        }
+        pdf.addSection("Overall Notes");
+        pdf.addTextBlock("Notes", item.overallNotes);
+        const slug = item.siteName.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`inspection-${slug}.pdf`);
     };
 
     const statusIcon = (status: ChecklistItem["status"]) => {
@@ -292,6 +314,9 @@ export default function InspectionsPage() {
                                         {item.totalPassed}/{item.totalChecked} passed · {formatDate(item.createdAt)}
                                     </p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                    <FileDown size={16} />
+                                </button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
                                     <Trash2 size={16} />
                                 </button>

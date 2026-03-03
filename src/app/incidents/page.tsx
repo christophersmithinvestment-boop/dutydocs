@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, AlertTriangle, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, AlertTriangle, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, formatDate } from "@/lib/utils";
+import { SafeGuardPDF, pdfDateTime } from "@/lib/pdf-generator";
 
 interface Incident {
     id: string;
@@ -66,6 +67,30 @@ export default function IncidentsPage() {
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         saveToStore(STORE_KEY, updated);
+    };
+
+    const handleExportPDF = (item: Incident) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Incident Report", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Incident Details");
+        pdf.addKeyValue("Date & Time", pdfDateTime(item.dateTime));
+        pdf.addKeyValue("Location", item.location);
+        pdf.addStatusBadge("Severity", item.severity);
+        pdf.addKeyValue("Reported By", item.reportedBy);
+        pdf.addKeyValue("RIDDOR Reportable", item.riddorReportable);
+        pdf.addSection("Description");
+        pdf.addTextBlock("What Happened", item.description);
+        pdf.addSection("Injury Details");
+        pdf.addKeyValue("Injury Type", item.injuryType);
+        pdf.addKeyValue("Injured Person", item.injuredPerson);
+        pdf.addKeyValue("First Aid Given", item.firstAidGiven);
+        pdf.addTextBlock("First Aid Details", item.firstAidDetails);
+        pdf.addKeyValue("Witnesses", item.witnesses);
+        pdf.addSection("Investigation");
+        pdf.addTextBlock("Immediate Actions Taken", item.immediateActions);
+        pdf.addTextBlock("Root Cause", item.rootCause);
+        pdf.addTextBlock("Corrective Actions", item.correctiveActions);
+        pdf.save(`incident-report-${item.id.split("-")[0]}.pdf`);
     };
 
     const severityBadge = (s: string) => {
@@ -222,6 +247,9 @@ export default function IncidentsPage() {
                                         {item.riddorReportable && " · RIDDOR"}
                                     </p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                    <FileDown size={16} />
+                                </button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
                                     <Trash2 size={16} />
                                 </button>

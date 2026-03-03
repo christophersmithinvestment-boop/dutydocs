@@ -7,7 +7,9 @@ import {
     ChevronRight,
     ArrowLeft,
     Trash2,
+    FileDown,
 } from "lucide-react";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 import {
     loadFromStore,
     saveToStore,
@@ -89,6 +91,34 @@ export default function RiskAssessmentPage() {
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         saveToStore(STORE_KEY, updated);
+    };
+
+    const handleExportPDF = (item: RiskAssessment) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Risk Assessment", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Assessment Details");
+        pdf.addKeyValue("Title", item.title);
+        pdf.addKeyValue("Location", item.location);
+        pdf.addKeyValue("Assessor", item.assessor);
+        pdf.addStatusBadge("Status", item.status);
+        pdf.addKeyValue("Created", pdfDate(item.createdAt));
+        pdf.addKeyValue("Review Date", pdfDate(item.reviewDate));
+        pdf.addSection("Hazard Identification");
+        pdf.addTextBlock("Hazard Description", item.hazardDescription);
+        pdf.addKeyValue("Who is at Risk", item.whoAtRisk);
+        pdf.addSection("Initial Risk Rating");
+        pdf.addKeyValue("Likelihood", item.likelihood);
+        pdf.addKeyValue("Severity", item.severity);
+        pdf.addRiskBadge("Risk Level", item.riskLevel, item.likelihood * item.severity);
+        pdf.addSection("Control Measures");
+        pdf.addTextBlock("Controls", item.controlMeasures);
+        pdf.addKeyValue("Responsible Person", item.responsiblePerson);
+        pdf.addSection("Residual Risk (After Controls)");
+        pdf.addKeyValue("Residual Likelihood", item.residualLikelihood);
+        pdf.addKeyValue("Residual Severity", item.residualSeverity);
+        pdf.addRiskBadge("Residual Risk", item.residualRiskLevel, item.residualLikelihood * item.residualSeverity);
+        const slug = item.title.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`risk-assessment-${slug}.pdf`);
     };
 
     if (showForm) {
@@ -233,6 +263,9 @@ export default function RiskAssessmentPage() {
                                         {item.location && `${item.location} · `}{formatDate(item.createdAt)}
                                     </p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                    <FileDown size={16} />
+                                </button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
                                     <Trash2 size={16} />
                                 </button>

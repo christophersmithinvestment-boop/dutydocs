@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, FileText, ArrowLeft, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, FileText, ArrowLeft, Trash2, ChevronDown, ChevronUp, FileDown } from "lucide-react";
 import { loadFromStore, saveToStore, generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
+import { SafeGuardPDF, pdfDate } from "@/lib/pdf-generator";
 
 interface RAMSStep {
     id: string;
@@ -95,6 +96,36 @@ export default function RAMSPage() {
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         saveToStore(STORE_KEY, updated);
+    };
+
+    const handleExportPDF = (item: RAMS) => {
+        const pdf = new SafeGuardPDF();
+        pdf.addHeader("Risk Assessment & Method Statement", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addSection("Task Details");
+        pdf.addKeyValue("Task Title", item.taskTitle);
+        pdf.addKeyValue("Project Name", item.projectName);
+        pdf.addKeyValue("Location", item.location);
+        pdf.addKeyValue("Assessor", item.assessor);
+        pdf.addKeyValue("Created", pdfDate(item.createdAt));
+        pdf.addKeyValue("Review Date", pdfDate(item.reviewDate));
+        pdf.addTextBlock("Task Description", item.taskDescription);
+        pdf.addSection("Method Statement");
+        pdf.addTable(
+            ["Step", "Description", "Hazards", "Controls", "Responsible"],
+            item.steps.map((s, i) => [String(i + 1), s.description, s.hazards, s.controls, s.responsiblePerson]),
+            [12, 40, 40, 40, 38]
+        );
+        pdf.addSection("Overall Risk Rating");
+        pdf.addKeyValue("Likelihood", item.overallLikelihood);
+        pdf.addKeyValue("Severity", item.overallSeverity);
+        pdf.addRiskBadge("Risk Level", item.riskLevel, item.overallLikelihood * item.overallSeverity);
+        pdf.addSection("PPE & Equipment");
+        pdf.addTagList("PPE Required", item.ppeRequired);
+        pdf.addTextBlock("Plant & Equipment", item.plantEquipment);
+        pdf.addSection("Emergency Procedures");
+        pdf.addTextBlock("Procedures", item.emergencyProcedures);
+        const slug = item.taskTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        pdf.save(`rams-${slug}.pdf`);
     };
 
     if (showForm) {
@@ -270,6 +301,9 @@ export default function RAMSPage() {
                                         {item.steps.length} step{item.steps.length !== 1 ? "s" : ""} · {formatDate(item.createdAt)}
                                     </p>
                                 </div>
+                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                    <FileDown size={16} />
+                                </button>
                                 <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
                                     <Trash2 size={16} />
                                 </button>
