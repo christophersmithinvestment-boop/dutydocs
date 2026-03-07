@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function isClient() {
+  return typeof window !== "undefined";
+}
+
 // LocalStorage helpers
 export function saveToStore<T>(key: string, data: T): void {
   if (typeof window === "undefined") return;
@@ -95,4 +99,33 @@ export function timeAgo(date: string | Date): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return formatDate(date);
+}
+
+// Expiry logic
+export type ExpiryStatus = "valid" | "expiring" | "expired" | "none";
+
+export function getExpiryStatus(date: string | Date | undefined): ExpiryStatus {
+  if (!date) return "none";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "none";
+
+  const now = new Date();
+  // Set to start of day for cleaner comparison
+  now.setHours(0, 0, 0, 0);
+  const checkDate = new Date(d);
+  checkDate.setHours(0, 0, 0, 0);
+
+  const diff = checkDate.getTime() - now.getTime();
+  if (diff < 0) return "expired";
+  if (diff < 30 * 24 * 60 * 60 * 1000) return "expiring";
+  return "valid";
+}
+
+export function getExpiryBadgeClass(status: ExpiryStatus): string {
+  switch (status) {
+    case "valid": return "badge-green";
+    case "expiring": return "badge-yellow";
+    case "expired": return "badge-red";
+    default: return "badge-blue";
+  }
 }

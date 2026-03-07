@@ -5,6 +5,10 @@ import { Plus, Monitor, ArrowLeft, Trash2, Check, X, Minus, FileDown } from "luc
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface DSEItem {
     id: string;
@@ -31,8 +35,6 @@ interface DSEAssessment {
     score: number;
     createdAt: string;
 }
-
-const STORE_KEY = "dse_assessments";
 
 const DEFAULT_CATEGORIES: { name: string; items: string[] }[] = [
     {
@@ -104,7 +106,24 @@ function buildCategories(): DSECategory[] {
 }
 
 export default function DSEPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<DSEAssessment>({ module: "dse_assessments", storeKey: "dse_assessments" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<DSEAssessment & { title: string }>({
+        module: "dse_assessments",
+        storeKey: "dse_assessments"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ employeeName: "", department: "", workstationLocation: "", assessorName: "", date: "", additionalNotes: "", actionRequired: "" });
     const [categories, setCategories] = useState<DSECategory[]>(() => buildCategories());
@@ -140,14 +159,25 @@ export default function DSEPage() {
         const passed = allItems.filter((i) => i.status === "pass");
         const applicable = allItems.filter((i) => i.status !== "na" && i.status !== "unchecked");
         const score = applicable.length > 0 ? Math.round((passed.length / applicable.length) * 100) : 0;
-        const newItem: DSEAssessment = { id: generateId(), ...form, categories, score, createdAt: new Date().toISOString() };
+        const newItem: DSEAssessment & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.employeeName,
+            categories,
+            score,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("Assessment saved successfully");
         setShowForm(false);
         setForm({ employeeName: "", department: "", workstationLocation: "", assessorName: "", date: "", additionalNotes: "", actionRequired: "" });
         setCategories(buildCategories());
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Assessment deleted", "info");
+    };
 
     const handleExportPDF = (item: DSEAssessment) => {
         const pdf = new DutyDocsPDF();
@@ -233,37 +263,63 @@ export default function DSEPage() {
     }
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>DSE Assessments</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} assessment{items.length !== 1 ? "s" : ""}</p>
+        <PremiumModuleGuard moduleName="DSE Assessment">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>DSE Assessments</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} assessment{totalRecords !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> New</button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> New</button>
-            </div>
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <Monitor size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No DSE assessments yet</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Assess display screen equipment workstations</p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                            <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold" style={{ background: item.score >= 80 ? "rgba(16,185,129,0.15)" : item.score >= 50 ? "rgba(234,179,8,0.15)" : "rgba(239,68,68,0.15)", color: item.score >= 80 ? "var(--color-safety-green)" : item.score >= 50 ? "var(--color-safety-yellow)" : "var(--color-safety-red)" }}>{item.score}%</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.employeeName}</p>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.workstationLocation && `${item.workstationLocation} · `}{formatDate(item.createdAt)}</p>
+
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search name..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Assessments imported successfully");
+                        } catch {
+                            showToast("Failed to import assessments", "error");
+                        }
+                    }}
+                />
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <Monitor size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching assessments" : "No DSE assessments yet"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Assess display screen equipment workstations"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {filteredItems.map((item, i) => (
+                            <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold" style={{ background: item.score >= 80 ? "rgba(16,185,129,0.15)" : item.score >= 50 ? "rgba(234,179,8,0.15)" : "rgba(239,68,68,0.15)", color: item.score >= 80 ? "var(--color-safety-green)" : item.score >= 50 ? "var(--color-safety-yellow)" : "var(--color-safety-red)" }}>{item.score}%</div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.employeeName}</p>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.workstationLocation && `${item.workstationLocation} · `}{formatDate(item.createdAt)}</p>
+                                    </div>
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                                 </div>
-                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }

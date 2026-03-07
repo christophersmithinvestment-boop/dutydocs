@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { Plus, Phone, ArrowLeft, Trash2, PhoneCall } from "lucide-react";
 import { generateId } from "@/lib/utils";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface EmergencyContact {
     id: string;
@@ -15,8 +19,6 @@ interface EmergencyContact {
     notes: string;
     createdAt: string;
 }
-
-const STORE_KEY = "emergency_contacts";
 
 const CATEGORIES = [
     "Site Manager", "Health & Safety Officer", "First Aider", "Fire Warden",
@@ -33,7 +35,24 @@ const DEFAULT_CONTACTS: Omit<EmergencyContact, "id" | "createdAt">[] = [
 ];
 
 export default function EmergencyContactsPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<EmergencyContact>({ module: "emergency_contacts", storeKey: "emergency_contacts" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<EmergencyContact & { title: string }>({
+        module: "emergency_contacts",
+        storeKey: "emergency_contacts"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({
         name: "", role: "", phone: "", alternatePhone: "", category: "", notes: "",
@@ -43,20 +62,29 @@ export default function EmergencyContactsPage() {
     useEffect(() => {
         if (!loading && items.length === 0) {
             DEFAULT_CONTACTS.forEach((c) => {
-                addItem({ ...c, id: generateId(), createdAt: new Date().toISOString() });
+                addItem({ ...c, id: generateId(), title: c.name, createdAt: new Date().toISOString() });
             });
         }
-    }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [loading, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSave = () => {
         if (!form.name.trim() || !form.phone.trim()) return;
-        const newItem: EmergencyContact = { id: generateId(), ...form, createdAt: new Date().toISOString() };
+        const newItem: EmergencyContact & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.name,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("Contact saved successfully");
         setShowForm(false);
         setForm({ name: "", role: "", phone: "", alternatePhone: "", category: "", notes: "" });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Contact deleted", "info");
+    };
 
     const categoryColor = (cat: string) => {
         if (cat.includes("Emergency")) return "var(--color-safety-red)";
@@ -92,7 +120,7 @@ export default function EmergencyContactsPage() {
     }
 
     // Group by category
-    const grouped = items.reduce<Record<string, EmergencyContact[]>>((acc, item) => {
+    const grouped = filteredItems.reduce<Record<string, EmergencyContact[]>>((acc, item) => {
         const cat = item.category || "Other";
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(item);
@@ -100,52 +128,77 @@ export default function EmergencyContactsPage() {
     }, {});
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Emergency Contacts</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} contact{items.length !== 1 ? "s" : ""}</p>
+        <PremiumModuleGuard moduleName="Emergency Contacts">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Emergency Contacts</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} contact{totalRecords !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
-            </div>
 
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <Phone size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No emergency contacts</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Add key numbers for emergencies</p>
-                </div>
-            ) : (
-                <div className="space-y-5">
-                    {Object.entries(grouped).map(([category, contacts]) => (
-                        <div key={category}>
-                            <p className="section-header px-1">{category}</p>
-                            <div className="space-y-2">
-                                {contacts.map((item, i) => (
-                                    <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${categoryColor(category)}15` }}>
-                                                <Phone size={16} style={{ color: categoryColor(category) }} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{item.name}</p>
-                                                {item.role && <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.role}</p>}
-                                                <p className="text-xs font-mono mt-0.5" style={{ color: "var(--color-safety-green)" }}>{item.phone}</p>
-                                            </div>
-                                            <div className="flex items-center gap-1 flex-shrink-0">
-                                                <a href={`tel:${item.phone}`} className="btn btn-success" style={{ padding: "0.5rem", borderRadius: "50%" }}>
-                                                    <PhoneCall size={14} />
-                                                </a>
-                                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={14} /></button>
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search name..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Contacts imported successfully");
+                        } catch {
+                            showToast("Failed to import contacts", "error");
+                        }
+                    }}
+                />
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <Phone size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching contacts" : "No emergency contacts"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Add key numbers for emergencies"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-5">
+                        {Object.entries(grouped).map(([category, contacts]) => (
+                            <div key={category}>
+                                <p className="section-header px-1">{category}</p>
+                                <div className="space-y-2">
+                                    {contacts.map((item, i) => (
+                                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${categoryColor(category)}15` }}>
+                                                    <Phone size={16} style={{ color: categoryColor(category) }} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{item.name}</p>
+                                                    {item.role && <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.role}</p>}
+                                                    <p className="text-xs font-mono mt-0.5" style={{ color: "var(--color-safety-green)" }}>{item.phone}</p>
+                                                </div>
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                    <a href={`tel:${item.phone}`} className="btn btn-success" style={{ padding: "0.5rem", borderRadius: "50%" }}>
+                                                        <PhoneCall size={14} />
+                                                    </a>
+                                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={14} /></button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }

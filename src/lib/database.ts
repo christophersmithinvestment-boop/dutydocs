@@ -145,3 +145,21 @@ export async function migrateFromLocalStorage(module: string, storeKey: string):
         return 0;
     }
 }
+
+// ─── Get total count of all records across all modules ───────────────
+export async function getTotalRecordCount(): Promise<number> {
+    const userId = await getUserId();
+    if (!userId) return 0;
+
+    const { count, error } = await supabase
+        .from("records")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+    if (error) {
+        console.error("[DutyDocs] Failed to get total record count:", error.message);
+        return 0;
+    }
+
+    return count || 0;
+}

@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { Plus, HardHat, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-react";
-import { generateId, formatDate } from "@/lib/utils";
+import { generateId, formatDate, getExpiryStatus, getExpiryBadgeClass } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface PPERecord {
     id: string;
@@ -21,8 +25,6 @@ interface PPERecord {
     createdAt: string;
 }
 
-const STORE_KEY = "ppe_register";
-
 const PPE_TYPES = [
     "Hard Hat", "Safety Boots", "Hi-Vis Vest", "Safety Goggles", "Face Shield",
     "Ear Defenders", "Ear Plugs", "Nitrile Gloves", "Chemical Gloves", "Rigger Gloves",
@@ -32,7 +34,24 @@ const PPE_TYPES = [
 ];
 
 export default function PPERegisterPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<PPERecord>({ module: "ppe_register", storeKey: "ppe_register" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<PPERecord & { title: string }>({
+        module: "ppe_register",
+        storeKey: "ppe_register"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({
         employeeName: "", department: "", ppeType: "", manufacturer: "", serialNumber: "",
@@ -42,13 +61,22 @@ export default function PPERegisterPage() {
 
     const handleSave = () => {
         if (!form.employeeName.trim() || !form.ppeType) return;
-        const newItem: PPERecord = { id: generateId(), ...form, createdAt: new Date().toISOString() };
+        const newItem: PPERecord & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: `${form.employeeName} - ${form.ppeType}`,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("PPE item registered successfully");
         setShowForm(false);
         setForm({ employeeName: "", department: "", ppeType: "", manufacturer: "", serialNumber: "", dateIssued: "", expiryDate: "", condition: "good", lastInspected: "", notes: "" });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Item removed", "info");
+    };
 
     const handleExportPDF = (item: PPERecord) => {
         const pdf = new DutyDocsPDF();
@@ -69,16 +97,17 @@ export default function PPERegisterPage() {
         pdf.save(`ppe-record-${item.id.split("-")[0]}.pdf`);
     };
 
-    const isExpired = (date: string) => date && new Date(date) < new Date();
-    const isExpiringSoon = (date: string) => {
-        if (!date) return false;
-        const d = new Date(date);
-        const now = new Date();
-        const diff = d.getTime() - now.getTime();
-        return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
-    };
+    const expiredCount = items.filter((i) => getExpiryStatus(i.expiryDate) === "expired").length;
+    const expiringCount = items.filter((i) => getExpiryStatus(i.expiryDate) === "expiring").length;
 
-    const conditionBadge = (c: string) => { switch (c) { case "good": return "badge-green"; case "fair": return "badge-yellow"; case "replace": return "badge-red"; default: return "badge-blue"; } };
+    const conditionBadge = (c: string) => {
+        switch (c) {
+            case "good": return "badge-green";
+            case "fair": return "badge-yellow";
+            case "replace": return "badge-red";
+            default: return "badge-blue";
+        }
+    };
 
     if (showForm) {
         return (
@@ -120,47 +149,94 @@ export default function PPERegisterPage() {
     }
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>PPE Register</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} item{items.length !== 1 ? "s" : ""} registered</p>
+        <PremiumModuleGuard moduleName="PPE Register">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>PPE Register</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} item{totalRecords !== 1 ? "s" : ""} registered</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
-            </div>
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <HardHat size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No PPE registered</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Track PPE issued to staff with expiry dates</p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(59,130,246,0.1)" }}>
-                                    <HardHat size={16} style={{ color: "var(--color-safety-blue)" }} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.ppeType}</p>
-                                        <span className={`badge ${conditionBadge(item.condition)}`}>{item.condition.toUpperCase()}</span>
-                                        {isExpired(item.expiryDate) && <span className="badge badge-red">EXPIRED</span>}
-                                        {isExpiringSoon(item.expiryDate) && !isExpired(item.expiryDate) && <span className="badge badge-yellow">EXPIRING</span>}
-                                    </div>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                                        {item.employeeName}{item.department && ` · ${item.department}`}
-                                        {item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
-                                    </p>
-                                </div>
-                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search name or item..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Records imported successfully");
+                        } catch {
+                            showToast("Failed to import records", "error");
+                        }
+                    }}
+                />
+
+                {/* Alerts */}
+                {(expiredCount > 0 || expiringCount > 0) && (
+                    <div className="mb-4 space-y-2">
+                        {expiredCount > 0 && (
+                            <div className="card card-compact flex items-center gap-3" style={{ borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.05)" }}>
+                                <AlertCircle size={16} style={{ color: "var(--color-safety-red)", flexShrink: 0 }} />
+                                <span className="text-sm font-medium" style={{ color: "var(--color-safety-red)" }}>{expiredCount} expired item{expiredCount !== 1 ? "s" : ""} — replacement required</span>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        )}
+                        {expiringCount > 0 && (
+                            <div className="card card-compact flex items-center gap-3" style={{ borderColor: "rgba(234,179,8,0.3)", background: "rgba(234,179,8,0.05)" }}>
+                                <AlertCircle size={16} style={{ color: "var(--color-safety-yellow)", flexShrink: 0 }} />
+                                <span className="text-sm font-medium" style={{ color: "var(--color-safety-yellow)" }}>{expiringCount} item{expiringCount !== 1 ? "s" : ""} expiring within 30 days</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <HardHat size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching items" : "No PPE registered"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Track PPE issued to staff with expiry dates"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {filteredItems.map((item, i) => (
+                            <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(59,130,246,0.1)" }}>
+                                        <HardHat size={16} style={{ color: "var(--color-safety-blue)" }} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.ppeType}</p>
+                                            <span className={`badge ${conditionBadge(item.condition)}`}>{item.condition.toUpperCase()}</span>
+                                            {getExpiryStatus(item.expiryDate) !== "valid" && getExpiryStatus(item.expiryDate) !== "none" && (
+                                                <span className={`badge ${getExpiryBadgeClass(getExpiryStatus(item.expiryDate))}`}>
+                                                    {getExpiryStatus(item.expiryDate).toUpperCase()}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                            {item.employeeName}{item.department && ` · ${item.department}`}
+                                            {item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }

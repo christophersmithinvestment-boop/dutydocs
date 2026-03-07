@@ -5,6 +5,11 @@ import { Plus, AlertTriangle, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDateTime } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import { useSubscription } from "@/hooks/useSubscription";
+import UpgradeModal from "@/components/UpgradeModal";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 
 interface Incident {
     id: string;
@@ -34,8 +39,23 @@ const INJURY_TYPES = [
 ];
 
 export default function IncidentsPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<Incident>({ module: "incidents", storeKey: "incidents" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<Incident & { title: string }>({ module: "incidents", storeKey: "incidents" });
+    const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [form, setForm] = useState({
         dateTime: "", location: "", description: "", injuryType: "",
         injuredPerson: "", firstAidGiven: false, firstAidDetails: "",
@@ -43,11 +63,24 @@ export default function IncidentsPage() {
         rootCause: "", correctiveActions: "", reportedBy: "",
         severity: "minor" as Incident["severity"],
     });
+    const { showToast } = useToast();
 
     const handleSave = () => {
         if (!form.description.trim()) return;
-        const newItem: Incident = { id: generateId(), ...form, createdAt: new Date().toISOString() };
+
+        if (isLimitReached(totalRecords)) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
+        const newItem: Incident & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.description, // Map for search
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("Incident report submitted!");
         setShowForm(false);
         setForm({
             dateTime: "", location: "", description: "", injuryType: "",
@@ -58,7 +91,10 @@ export default function IncidentsPage() {
         });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Incident report deleted", "info");
+    };
 
     const handleExportPDF = (item: Incident) => {
         const pdf = new DutyDocsPDF();
@@ -214,15 +250,42 @@ export default function IncidentsPage() {
                 </button>
             </div>
 
-            {items.length === 0 ? (
+            <ModuleToolbar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                placeholder="Search incidents..."
+                onExport={exportData}
+                onImport={async (file) => {
+                    try {
+                        await importData(file);
+                        showToast("Records imported successfully");
+                    } catch {
+                        showToast("Failed to import records", "error");
+                    }
+                }}
+            />
+
+            {loading ? (
+                <div className="space-y-3">
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                </div>
+            ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <AlertTriangle size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No incidents reported</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Tap &quot;Report&quot; to log a workplace incident</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "No matching reports found" : "No incidents reported"}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Tap \"Report\" to log a workplace incident"}
+                    </p>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {items.map((item, i) => (
+                    {filteredItems.map((item, i) => (
                         <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(239,68,68,0.1)" }}>
@@ -249,6 +312,12 @@ export default function IncidentsPage() {
                     ))}
                 </div>
             )}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                title="Record Limit Reached"
+                description={`You've reached the 50 record limit on the Starter plan. Upgrade to Pro to create unlimited health and safety documents.`}
+            />
         </div>
     );
 }

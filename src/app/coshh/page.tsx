@@ -5,6 +5,11 @@ import { Plus, FlaskConical, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import { useSubscription } from "@/hooks/useSubscription";
+import UpgradeModal from "@/components/UpgradeModal";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 
 interface COSHHAssessment {
     id: string;
@@ -41,22 +46,53 @@ const PPE_OPTIONS = [
 ];
 
 export default function COSHHPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<COSHHAssessment>({ module: "coshh_assessments", storeKey: "coshh_assessments" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<COSHHAssessment & { title: string }>({
+        module: "coshh_assessments",
+        storeKey: "coshh_assessments"
+    });
+    const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [form, setForm] = useState({
         substanceName: "", manufacturer: "", usedFor: "", location: "",
         hazardSymbols: [] as string[], exposureRoutes: [] as string[],
         healthEffects: "", controlMeasures: "", ppeRequired: [] as string[],
         emergencyProcedures: "", storageRequirements: "", assessor: "", reviewDate: "",
     });
+    const { showToast } = useToast();
 
     const toggleArrayItem = (arr: string[], item: string) =>
         arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item];
 
     const handleSave = () => {
         if (!form.substanceName.trim()) return;
-        const newItem: COSHHAssessment = { id: generateId(), ...form, createdAt: new Date().toISOString() };
+
+        if (isLimitReached(totalRecords)) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
+        const newItem: COSHHAssessment & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.substanceName, // Map for search
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("COSHH assessment saved!");
         setShowForm(false);
         setForm({
             substanceName: "", manufacturer: "", usedFor: "", location: "",
@@ -65,7 +101,10 @@ export default function COSHHPage() {
         });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Assessment deleted", "info");
+    };
 
     const handleExportPDF = (item: COSHHAssessment) => {
         const pdf = new DutyDocsPDF();
@@ -237,16 +276,44 @@ export default function COSHHPage() {
                 </button>
             </div>
 
-            {items.length === 0 ? (
+            <ModuleToolbar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                placeholder="Search substances..."
+                onExport={exportData}
+                onImport={async (file) => {
+                    try {
+                        await importData(file);
+                        showToast("Records imported successfully");
+                    } catch {
+                        showToast("Failed to import records", "error");
+                    }
+                }}
+            />
+
+            {loading ? (
+                <div className="space-y-3">
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                </div>
+            ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <FlaskConical size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No COSHH assessments yet</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Tap &quot;New&quot; to add a substance assessment</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "No matching assessments found" : "No COSHH assessments yet"}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Tap \"New\" to add a substance assessment"}
+                    </p>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {items.map((item, i) => (
+                    {filteredItems.map((item, i) => (
                         <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                            {/* ... item content */}
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(168,85,247,0.1)" }}>
                                     <FlaskConical size={16} style={{ color: "var(--color-safety-purple)" }} />
@@ -275,6 +342,12 @@ export default function COSHHPage() {
                     ))}
                 </div>
             )}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                title="Record Limit Reached"
+                description={`You've reached the 50 record limit on the Starter plan. Upgrade to Pro to create unlimited health and safety documents.`}
+            />
         </div>
     );
 }

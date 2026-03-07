@@ -5,6 +5,11 @@ import { Plus, FileText, ArrowLeft, Trash2, ChevronDown, ChevronUp, FileDown } f
 import { generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import { useSubscription } from "@/hooks/useSubscription";
+import UpgradeModal from "@/components/UpgradeModal";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 
 interface RAMSStep {
     id: string;
@@ -40,8 +45,23 @@ const PPE_LIST = [
 ];
 
 export default function RAMSPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<RAMS>({ module: "rams", storeKey: "rams" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<RAMS & { title: string }>({ module: "rams", storeKey: "rams" });
+    const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [steps, setSteps] = useState<RAMSStep[]>([
         { id: "1", description: "", hazards: "", controls: "", responsiblePerson: "" },
     ]);
@@ -50,6 +70,7 @@ export default function RAMSPage() {
         taskDescription: "", ppeRequired: [] as string[], plantEquipment: "",
         overallLikelihood: 3, overallSeverity: 3, emergencyProcedures: "", reviewDate: "",
     });
+    const { showToast } = useToast();
 
     const togglePPE = (ppe: string) => {
         setForm({
@@ -75,9 +96,23 @@ export default function RAMSPage() {
 
     const handleSave = () => {
         if (!form.taskTitle.trim()) return;
+
+        if (isLimitReached(totalRecords)) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
         const riskLevel = calculateRiskLevel(form.overallLikelihood, form.overallSeverity);
-        const newItem: RAMS = { id: generateId(), ...form, steps, riskLevel, createdAt: new Date().toISOString() };
+        const newItem: RAMS & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.taskTitle, // Map for search
+            steps,
+            riskLevel,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("RAMS saved successfully!");
         setShowForm(false);
         setSteps([{ id: "1", description: "", hazards: "", controls: "", responsiblePerson: "" }]);
         setForm({
@@ -87,7 +122,10 @@ export default function RAMSPage() {
         });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("RAMS deleted", "info");
+    };
 
     const handleExportPDF = (item: RAMS) => {
         const pdf = new DutyDocsPDF();
@@ -267,15 +305,42 @@ export default function RAMSPage() {
                 </button>
             </div>
 
-            {items.length === 0 ? (
+            <ModuleToolbar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                placeholder="Search RAMS..."
+                onExport={exportData}
+                onImport={async (file) => {
+                    try {
+                        await importData(file);
+                        showToast("Records imported successfully");
+                    } catch {
+                        showToast("Failed to import records", "error");
+                    }
+                }}
+            />
+
+            {loading ? (
+                <div className="space-y-3">
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                </div>
+            ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <FileText size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No RAMS yet</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Create a risk assessment &amp; method statement</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "No matching records found" : "No RAMS yet"}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Create a risk assessment & method statement"}
+                    </p>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {items.map((item, i) => (
+                    {filteredItems.map((item, i) => (
                         <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(59,130,246,0.1)" }}>
@@ -303,6 +368,12 @@ export default function RAMSPage() {
                     ))}
                 </div>
             )}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                title="Record Limit Reached"
+                description={`You've reached the 50 record limit on the Starter plan. Upgrade to Pro to create unlimited health and safety documents.`}
+            />
         </div>
     );
 }

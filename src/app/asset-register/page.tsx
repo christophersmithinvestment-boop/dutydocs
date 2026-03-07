@@ -5,6 +5,10 @@ import { Plus, Package, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface AssetRecord {
     id: string;
@@ -37,19 +41,45 @@ const emptyForm = {
 };
 
 export default function AssetRegisterPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<AssetRecord>({ module: "asset_register", storeKey: "asset_register" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<AssetRecord & { title: string }>({
+        module: "asset_register",
+        storeKey: "asset_register"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ ...emptyForm });
 
     const handleSave = () => {
         if (!form.assetName.trim() || !form.assetType) return;
-        const newItem: AssetRecord = { id: generateId(), ...form, createdAt: new Date().toISOString() };
+        const newItem: AssetRecord & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.assetName,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("Asset registered successfully");
         setShowForm(false);
         setForm({ ...emptyForm });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Asset removed", "info");
+    };
 
     const handleExportPDF = (item: AssetRecord) => {
         const pdf = new DutyDocsPDF();
@@ -182,55 +212,81 @@ export default function AssetRegisterPage() {
     }
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Asset Register</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} asset{items.length !== 1 ? "s" : ""} registered</p>
+        <PremiumModuleGuard moduleName="Asset Register">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Asset Register</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} asset{totalRecords !== 1 ? "s" : ""} registered</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
-            </div>
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <Package size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No assets registered</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Track equipment, inspections, and certification dates</p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                            <div className="flex items-center gap-3">
-                                <div
-                                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                                    style={{ background: "rgba(20,184,166,0.1)" }}
-                                >
-                                    <Package size={18} style={{ color: "#14b8a6" }} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.assetName}</p>
-                                        <span className={`badge ${conditionBadge(item.condition)}`}>{conditionLabel(item.condition)}</span>
-                                        {isOverdue(item.nextInspectionDue) && <span className="badge badge-red">OVERDUE</span>}
-                                        {isDueSoon(item.nextInspectionDue) && !isOverdue(item.nextInspectionDue) && <span className="badge badge-yellow">DUE SOON</span>}
+
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search assets..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Assets imported successfully");
+                        } catch {
+                            showToast("Failed to import assets", "error");
+                        }
+                    }}
+                />
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <Package size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching assets" : "No assets registered"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Track equipment, inspections, and certification dates"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {filteredItems.map((item, i) => (
+                            <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                                        style={{ background: "rgba(20,184,166,0.1)" }}
+                                    >
+                                        <Package size={18} style={{ color: "#14b8a6" }} />
                                     </div>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                                        {item.assetType}
-                                        {item.location && ` · ${item.location}`}
-                                        {item.nextInspectionDue && ` · Due: ${formatDate(item.nextInspectionDue)}`}
-                                    </p>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.assetName}</p>
+                                            <span className={`badge ${conditionBadge(item.condition)}`}>{conditionLabel(item.condition)}</span>
+                                            {isOverdue(item.nextInspectionDue) && <span className="badge badge-red">OVERDUE</span>}
+                                            {isDueSoon(item.nextInspectionDue) && !isOverdue(item.nextInspectionDue) && <span className="badge badge-yellow">DUE SOON</span>}
+                                        </div>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                            {item.assetType}
+                                            {item.location && ` · ${item.location}`}
+                                            {item.nextInspectionDue && ` · Due: ${formatDate(item.nextInspectionDue)}`}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                        <FileDown size={16} />
+                                    </button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
-                                    <FileDown size={16} />
-                                </button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
-                                    <Trash2 size={16} />
-                                </button>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }

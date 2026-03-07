@@ -21,9 +21,15 @@ import {
     HeartPulse,
     GraduationCap,
     Phone,
+    Crown,
+    Zap,
 } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useModuleData } from "@/hooks/useModuleData";
+import UpgradeModal from "@/components/UpgradeModal";
 
 const navGroups = [
     {
@@ -72,6 +78,9 @@ const navGroups = [
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
+    const { isPro, hasModuleAccess } = useSubscription();
+    const { totalRecords } = useModuleData({ module: "risk_assessments", storeKey: "risk_assessments" });
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     return (
         <aside
@@ -110,11 +119,18 @@ export function Sidebar({ className }: { className?: string }) {
                                     item.href === "/"
                                         ? pathname === "/"
                                         : pathname.startsWith(item.href);
+                                const moduleMap: Record<string, string> = {
+                                    "/risk-assessment": "risk_assessments",
+                                    "/coshh": "coshh_assessments",
+                                    "/near-miss": "near_misses",
+                                };
+                                const moduleName = moduleMap[item.href] || item.href.replace("/", "").replace(/-/g, "_");
+
                                 return (
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+                                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group"
                                         style={{
                                             color: isActive
                                                 ? "var(--color-accent)"
@@ -124,8 +140,13 @@ export function Sidebar({ className }: { className?: string }) {
                                                 : "transparent",
                                         }}
                                     >
-                                        <item.icon size={18} strokeWidth={isActive ? 2.2 : 1.6} />
-                                        <span>{item.label}</span>
+                                        <div className="flex items-center gap-3">
+                                            <item.icon size={18} strokeWidth={isActive ? 2.2 : 1.6} />
+                                            <span>{item.label}</span>
+                                        </div>
+                                        {!isPro && !hasModuleAccess(moduleName) && (
+                                            <Crown size={12} className="text-amber-500/80 group-hover:text-amber-500 transition-colors" />
+                                        )}
                                     </Link>
                                 );
                             })}
@@ -135,7 +156,46 @@ export function Sidebar({ className }: { className?: string }) {
             </nav>
 
             {/* Settings link */}
-            <div className="px-3 py-4 border-t" style={{ borderColor: "var(--color-border)" }}>
+            <div className="px-3 py-4 border-t space-y-3" style={{ borderColor: "var(--color-border)" }}>
+                {!isPro && (
+                    <div
+                        className="px-4 py-4 rounded-xl relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                        onClick={() => setShowUpgradeModal(true)}
+                        style={{
+                            background: "linear-gradient(135deg, var(--color-accent) 0%, #0d9488 100%)",
+                            boxShadow: "0 10px 15px -3px rgba(20, 184, 166, 0.2)",
+                        }}
+                    >
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                                    <Crown size={12} className="text-white" />
+                                </div>
+                                <span className="text-xs font-bold text-white uppercase tracking-wider">Upgrade to Pro</span>
+                            </div>
+                            <p className="text-[10px] text-white/90 font-medium mb-3">
+                                Get unlimited documents, smart exports & tailored H&S advice.
+                            </p>
+
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-bold text-white">
+                                    <span>Usage</span>
+                                    <span>{totalRecords}/50 Records</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-white transition-all duration-500"
+                                        style={{ width: `${Math.min(100, (totalRecords / 50) * 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Decoration */}
+                        <div className="absolute top-[-20%] right-[-10%] w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+                    </div>
+                )}
+
                 <Link
                     href="/settings"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
@@ -145,6 +205,11 @@ export function Sidebar({ className }: { className?: string }) {
                     <span>Settings</span>
                 </Link>
             </div>
+
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+            />
         </aside >
     );
 }

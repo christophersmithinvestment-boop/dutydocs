@@ -8,6 +8,8 @@ import {
     CheckCircle2, Zap, Lock, ChevronRight, Star, Package,
 } from "lucide-react";
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
+import { useAuth } from "@/components/AuthProvider";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const FEATURES = [
     { icon: ClipboardCheck, label: "Risk Assessments", desc: "5×5 matrix scoring with residual risk tracking", color: "#f97316" },
@@ -65,6 +67,9 @@ const PRICING = [
 ];
 
 export default function LandingPage() {
+    const { user } = useAuth();
+    const { isPro, upgrade } = useSubscription();
+
     return (
         <div style={{ background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}>
             {/* ─── Navbar ──────────────────────────────────────────────── */}
@@ -81,10 +86,18 @@ export default function LandingPage() {
                         <span className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>DutyDocs</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Link href="/login" className="btn btn-ghost" style={{ fontSize: "0.8125rem", padding: "0.5rem 1rem" }}>Sign In</Link>
-                        <Link href="/signup" className="btn btn-primary" style={{ fontSize: "0.8125rem", padding: "0.5rem 1.25rem" }}>
-                            Get Started <ArrowRight size={14} />
-                        </Link>
+                        {user ? (
+                            <Link href="/dashboard" className="btn btn-primary" style={{ fontSize: "0.8125rem", padding: "0.5rem 1.25rem" }}>
+                                Go to Dashboard <ArrowRight size={14} />
+                            </Link>
+                        ) : (
+                            <>
+                                <Link href="/login" className="btn btn-ghost" style={{ fontSize: "0.8125rem", padding: "0.5rem 1rem" }}>Sign In</Link>
+                                <Link href="/signup" className="btn btn-primary" style={{ fontSize: "0.8125rem", padding: "0.5rem 1.25rem" }}>
+                                    Get Started <ArrowRight size={14} />
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -129,15 +142,21 @@ export default function LandingPage() {
 
                     <p style={{
                         fontSize: "clamp(1rem, 2.5vw, 1.25rem)", color: "var(--color-text-secondary)",
-                        maxWidth: 600, margin: "0 auto 2.5rem", lineHeight: 1.6,
+                        maxWidth: 640, margin: "0 auto 3rem", lineHeight: 1.6,
                     }}>
-                        16 purpose-built modules to manage risk assessments, incidents, inspections, training, and more — all from your phone or desktop.
+                        Streamline your health and safety compliance with 16 professional modules. Built for the modern safety professional, from site to office.
                     </p>
 
                     <div className="flex items-center justify-center gap-3 flex-wrap">
-                        <Link href="/signup" className="btn btn-primary" style={{ padding: "0.875rem 2rem", fontSize: "1rem" }}>
-                            Start Free <ArrowRight size={16} />
-                        </Link>
+                        {user ? (
+                            <Link href="/dashboard" className="btn btn-primary" style={{ padding: "0.875rem 2rem", fontSize: "1rem" }}>
+                                Go to Dashboard <ArrowRight size={16} />
+                            </Link>
+                        ) : (
+                            <Link href="/signup" className="btn btn-primary" style={{ padding: "0.875rem 2rem", fontSize: "1rem" }}>
+                                Start Free <ArrowRight size={16} />
+                            </Link>
+                        )}
                         <a href="#features" className="btn btn-secondary" style={{ padding: "0.875rem 2rem", fontSize: "1rem" }}>
                             See Features
                         </a>
@@ -245,19 +264,19 @@ export default function LandingPage() {
                 </div>
 
                 <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", maxWidth: 960, margin: "0 auto" }}>
-                    {PRICING.map((plan) => (
+                    {PRICING.map((planItem) => (
                         <div
-                            key={plan.name}
+                            key={planItem.name}
                             style={{
                                 padding: "2rem",
-                                background: plan.popular ? "linear-gradient(135deg, rgba(20,184,166,0.08), rgba(20,184,166,0.02))" : "var(--color-bg-card)",
-                                border: plan.popular ? "2px solid rgba(20,184,166,0.4)" : "1px solid var(--color-border)",
+                                background: planItem.popular ? "linear-gradient(135deg, rgba(20,184,166,0.08), rgba(20,184,166,0.02))" : "var(--color-bg-card)",
+                                border: planItem.popular ? "2px solid rgba(20,184,166,0.4)" : "1px solid var(--color-border)",
                                 borderRadius: 20,
                                 position: "relative",
                                 transition: "all 0.25s ease",
                             }}
                         >
-                            {plan.popular && (
+                            {planItem.popular && (
                                 <div style={{
                                     position: "absolute", top: -1, left: "50%", transform: "translate(-50%, -50%)",
                                     background: "linear-gradient(135deg, #14b8a6, #0d9488)",
@@ -268,30 +287,40 @@ export default function LandingPage() {
                                 </div>
                             )}
 
-                            <h3 style={{ fontSize: "1.125rem", fontWeight: 700, marginBottom: "0.5rem" }}>{plan.name}</h3>
-                            <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", marginBottom: "1.5rem" }}>{plan.desc}</p>
+                            <h3 style={{ fontSize: "1.125rem", fontWeight: 700, marginBottom: "0.5rem" }}>{planItem.name}</h3>
+                            <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", marginBottom: "1.5rem" }}>{planItem.desc}</p>
 
                             <div className="flex items-baseline gap-1 mb-6">
-                                <span style={{ fontSize: "2.5rem", fontWeight: 800 }}>{plan.price}</span>
-                                {plan.period && <span style={{ fontSize: "0.9375rem", color: "var(--color-text-muted)" }}>{plan.period}</span>}
+                                <span style={{ fontSize: "2.5rem", fontWeight: 800 }}>{planItem.price}</span>
+                                {planItem.period && <span style={{ fontSize: "0.9375rem", color: "var(--color-text-muted)" }}>{planItem.period}</span>}
                             </div>
 
                             <ul style={{ listStyle: "none", marginBottom: "2rem" }} className="space-y-2.5">
-                                {plan.features.map((f) => (
+                                {planItem.features.map((f) => (
                                     <li key={f} className="flex items-center gap-2.5" style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-                                        <CheckCircle2 size={16} style={{ color: plan.popular ? "#14b8a6" : "#10b981", flexShrink: 0 }} />
+                                        <CheckCircle2 size={16} style={{ color: planItem.popular ? "#14b8a6" : "#10b981", flexShrink: 0 }} />
                                         {f}
                                     </li>
                                 ))}
                             </ul>
 
-                            <Link
-                                href="/signup"
-                                className={`btn btn-full ${plan.popular ? "btn-primary" : "btn-secondary"}`}
-                                style={{ padding: "0.875rem", fontSize: "0.9375rem" }}
-                            >
-                                {plan.cta} <ChevronRight size={16} />
-                            </Link>
+                            {planItem.name === "Pro" && user ? (
+                                <button
+                                    onClick={upgrade}
+                                    className="btn btn-full btn-primary"
+                                    style={{ padding: "0.875rem", fontSize: "0.9375rem" }}
+                                >
+                                    {isPro ? "Manage Subscription" : "Upgrade to Pro"} <ChevronRight size={16} />
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/signup"
+                                    className={`btn btn-full ${planItem.popular ? "btn-primary" : "btn-secondary"}`}
+                                    style={{ padding: "0.875rem", fontSize: "0.9375rem" }}
+                                >
+                                    {planItem.cta} <ChevronRight size={16} />
+                                </Link>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -311,9 +340,15 @@ export default function LandingPage() {
                     <p style={{ color: "var(--color-text-secondary)", maxWidth: 500, margin: "0 auto 2rem", fontSize: "1.0625rem" }}>
                         Join thousands of safety professionals who trust DutyDocs to keep their teams safe and their paperwork sorted.
                     </p>
-                    <Link href="/signup" className="btn btn-primary" style={{ padding: "0.875rem 2.5rem", fontSize: "1rem" }}>
-                        Get Started Free <ArrowRight size={16} />
-                    </Link>
+                    {user ? (
+                        <Link href="/dashboard" className="btn btn-primary" style={{ padding: "0.875rem 2.5rem", fontSize: "1rem" }}>
+                            Go to Dashboard <ArrowRight size={16} />
+                        </Link>
+                    ) : (
+                        <Link href="/signup" className="btn btn-primary" style={{ padding: "0.875rem 2.5rem", fontSize: "1rem" }}>
+                            Get Started Free <ArrowRight size={16} />
+                        </Link>
+                    )}
                 </div>
             </section>
 

@@ -5,6 +5,10 @@ import { Plus, Search, ArrowLeft, Trash2, Check, X, Minus, FileDown, Camera, Ima
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface ChecklistItem {
     id: string;
@@ -31,8 +35,6 @@ interface Inspection {
     totalPassed: number;
     createdAt: string;
 }
-
-const STORE_KEY = "inspections";
 
 const DEFAULT_CATEGORIES: { name: string; items: string[] }[] = [
     {
@@ -70,7 +72,24 @@ function buildCategories(): InspectionCategory[] {
 }
 
 export default function InspectionsPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<Inspection>({ module: "inspections", storeKey: "inspections" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<Inspection & { title: string }>({
+        module: "inspections",
+        storeKey: "inspections"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ siteName: "", inspectorName: "", date: "", overallNotes: "" });
     const [categories, setCategories] = useState<InspectionCategory[]>(() => buildCategories());
@@ -156,9 +175,10 @@ export default function InspectionsPage() {
         const applicableItems = allItems.filter((i) => i.status !== "na" && i.status !== "unchecked");
         const score = applicableItems.length > 0 ? Math.round((passed.length / applicableItems.length) * 100) : 0;
 
-        const newItem: Inspection = {
+        const newItem: Inspection & { title: string } = {
             id: generateId(),
             ...form,
+            title: form.siteName,
             categories,
             photos,
             score,
@@ -167,13 +187,17 @@ export default function InspectionsPage() {
             createdAt: new Date().toISOString(),
         };
         addItem(newItem);
+        showToast("Inspection saved successfully");
         setShowForm(false);
         setForm({ siteName: "", inspectorName: "", date: "", overallNotes: "" });
         setCategories(buildCategories());
         setPhotos([]);
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Inspection deleted", "info");
+    };
 
     const handleExportPDF = (item: Inspection) => {
         const pdf = new DutyDocsPDF();
@@ -367,55 +391,80 @@ export default function InspectionsPage() {
     }
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Site Inspections</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} inspection{items.length !== 1 ? "s" : ""}</p>
+        <PremiumModuleGuard moduleName="Site Inspections">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Site Inspections</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} inspection{totalRecords !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary">
+                        <Plus size={16} /> New
+                    </button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary">
-                    <Plus size={16} /> New
-                </button>
-            </div>
 
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <Search size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No inspections yet</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Run a site inspection with built-in checklists</p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                            <div className="flex items-center gap-3">
-                                <div
-                                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                                    style={{
-                                        background: item.score >= 80 ? "rgba(16,185,129,0.15)" : item.score >= 50 ? "rgba(234,179,8,0.15)" : "rgba(239,68,68,0.15)",
-                                        color: item.score >= 80 ? "var(--color-safety-green)" : item.score >= 50 ? "var(--color-safety-yellow)" : "var(--color-safety-red)",
-                                    }}
-                                >
-                                    {item.score}%
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search sites..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Inspections imported successfully");
+                        } catch {
+                            showToast("Failed to import inspections", "error");
+                        }
+                    }}
+                />
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <Search size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching inspections" : "No inspections yet"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Run a site inspection with built-in checklists"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {filteredItems.map((item, i) => (
+                            <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold"
+                                        style={{
+                                            background: item.score >= 80 ? "rgba(16,185,129,0.15)" : item.score >= 50 ? "rgba(234,179,8,0.15)" : "rgba(239,68,68,0.15)",
+                                            color: item.score >= 80 ? "var(--color-safety-green)" : item.score >= 50 ? "var(--color-safety-yellow)" : "var(--color-safety-red)",
+                                        }}
+                                    >
+                                        {item.score}%
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.siteName}</p>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                            {item.totalPassed}/{item.totalChecked} passed · {formatDate(item.createdAt)}
+                                            {item.photos?.length > 0 && ` · 📷 ${item.photos.length} photo${item.photos.length !== 1 ? "s" : ""}`}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
+                                        <FileDown size={16} />
+                                    </button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.siteName}</p>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                                        {item.totalPassed}/{item.totalChecked} passed · {formatDate(item.createdAt)}
-                                        {item.photos?.length > 0 && ` · 📷 ${item.photos.length} photo${item.photos.length !== 1 ? "s" : ""}`}
-                                    </p>
-                                </div>
-                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
-                                    <FileDown size={16} />
-                                </button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
-                                    <Trash2 size={16} />
-                                </button>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }

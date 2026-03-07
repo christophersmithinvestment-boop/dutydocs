@@ -1,12 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { HardHat, Trash2, Download, RotateCcw, LogOut, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { HardHat, Trash2, Users, LogOut, User, Crown, CreditCard, Sparkles, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useSearchParams } from "next/navigation";
+import { TeamInviteModal } from "@/components/TeamInviteModal";
+import { getTeamMembers, TeamMember } from "@/lib/teams";
 
 export default function SettingsPage() {
     const [showConfirm, setShowConfirm] = useState(false);
     const { user, signOut } = useAuth();
+    const { isPro, isStarter, upgrade, manageSubscription } = useSubscription();
+    const searchParams = useSearchParams();
+    const upgradeStatus = searchParams.get("upgrade");
+    const [showTeamModal, setShowTeamModal] = useState(false);
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+    const [loadingTeam, setLoadingTeam] = useState(true);
+
+    useEffect(() => {
+        if (isPro) {
+            getTeamMembers().then(members => {
+                setTeamMembers(members);
+                setLoadingTeam(false);
+            });
+        } else {
+            setLoadingTeam(false);
+        }
+    }, [isPro]);
 
     const clearAllData = () => {
         if (typeof window === "undefined") return;
@@ -41,7 +62,7 @@ export default function SettingsPage() {
                     <div
                         className="w-12 h-12 rounded-2xl flex items-center justify-center"
                         style={{
-                            background: "linear-gradient(135deg, var(--color-safety-orange), var(--color-safety-orange-dark))",
+                            background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-dark, var(--color-accent)))",
                         }}
                     >
                         <HardHat size={24} color="white" />
@@ -74,6 +95,137 @@ export default function SettingsPage() {
                             <LogOut size={14} /> Sign Out
                         </button>
                     </div>
+                </div>
+            </div>
+
+            {/* Subscription */}
+            <div className="mb-4">
+                <p className="section-header px-1">Subscription</p>
+                <div className="card">
+                    {upgradeStatus === "success" && (
+                        <div className="flex items-center gap-2 mb-4 p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                            <CheckCircle2 size={16} style={{ color: "var(--color-safety-green)" }} />
+                            <span className="text-sm font-medium" style={{ color: "var(--color-safety-green)" }}>Welcome to DutyDocs Pro! 🎉</span>
+                        </div>
+                    )}
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div
+                                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                style={{
+                                    background: isPro ? "rgba(234,179,8,0.1)" : "rgba(20,184,166,0.1)",
+                                }}
+                            >
+                                {isPro ? (
+                                    <Crown size={18} style={{ color: "#eab308" }} />
+                                ) : (
+                                    <Sparkles size={18} style={{ color: "#14b8a6" }} />
+                                )}
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                                        {isPro ? "Pro Plan" : "Starter Plan"}
+                                    </p>
+                                    <span className={`badge ${isPro ? "badge-yellow" : "badge-blue"}`}>
+                                        {isPro ? "PRO" : "FREE"}
+                                    </span>
+                                </div>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                    {isPro ? "Unlimited records, all 16 modules, priority support" : "Up to 50 records, 5 core modules"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isStarter ? (
+                        <button
+                            onClick={upgrade}
+                            className="btn btn-primary btn-full"
+                            style={{ padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+                        >
+                            <Crown size={16} /> Upgrade to Pro — £9.99/month
+                        </button>
+                    ) : (
+                        <button
+                            onClick={manageSubscription}
+                            className="btn btn-secondary btn-full"
+                            style={{ padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+                        >
+                            <CreditCard size={16} /> Manage Subscription
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Team Management */}
+            <div className="mb-4">
+                <div className="flex items-center justify-between section-header px-1">
+                    <span>Team Management</span>
+                    {isPro && (
+                        <span className="badge badge-yellow text-[9px] py-0.5">PRO</span>
+                    )}
+                </div>
+                <div className="card">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--color-bg-secondary)]">
+                                <Users size={18} className="text-[var(--color-accent)]" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Your Team</p>
+                                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                    {isPro ? "Manage team access and invitations" : "Upgrade to Pro to invite team members"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 mb-6">
+                        {loadingTeam ? (
+                            <div className="animate-pulse flex items-center gap-3 py-2">
+                                <div className="w-7 h-7 rounded-full bg-[var(--color-bg-secondary)]" />
+                                <div className="h-3 w-32 bg-[var(--color-bg-secondary)] rounded" />
+                            </div>
+                        ) : teamMembers.length > 0 ? (
+                            teamMembers.map((member) => (
+                                <div key={member.id} className="flex items-center justify-between py-2 border-b border-[var(--color-border)]/50 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 px-1 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-full bg-[var(--color-accent-subtle)] flex items-center justify-center text-[10px] font-bold text-[var(--color-accent)]">
+                                            {(member.full_name || "U")[0].toUpperCase()}
+                                        </div>
+                                        <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>
+                                            {member.full_name} {member.id === user?.id && "(You)"}
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-[var(--color-accent)] uppercase">
+                                        {member.role || (member.id === user?.id ? "Owner" : "Member")}
+                                    </span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex items-center justify-between py-2 border-b border-[var(--color-border)]/50">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-[var(--color-accent-subtle)] flex items-center justify-center text-[10px] font-bold text-[var(--color-accent)]">
+                                        {(user?.user_metadata?.full_name || user?.email || "U")[0].toUpperCase()}
+                                    </div>
+                                    <span className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>
+                                        {user?.user_metadata?.full_name || user?.email} (You)
+                                    </span>
+                                </div>
+                                <span className="text-[10px] font-bold text-[var(--color-accent)] uppercase">Owner</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={() => isPro ? setShowTeamModal(true) : upgrade()}
+                        className={`btn ${isPro ? "btn-secondary" : "btn-primary"} btn-full flex items-center justify-center gap-2`}
+                        style={{ padding: "0.75rem" }}
+                    >
+                        <Users size={16} />
+                        <span>{isPro ? "Invite Member" : "Upgrade to Invite Team"}</span>
+                    </button>
                 </div>
             </div>
 
@@ -129,6 +281,10 @@ export default function SettingsPage() {
                     © 2026 DutyDocs H&S Management
                 </p>
             </div>
+            <TeamInviteModal
+                isOpen={showTeamModal}
+                onClose={() => setShowTeamModal(false)}
+            />
         </div>
     );
 }

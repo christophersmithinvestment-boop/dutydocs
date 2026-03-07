@@ -19,7 +19,11 @@ import {
     HeartPulse,
     GraduationCap,
     Phone,
+    ShieldAlert,
 } from "lucide-react";
+import { useState } from "react";
+import { useSubscription } from "@/hooks/useSubscription";
+import UpgradeModal from "@/components/UpgradeModal";
 
 const sections = [
     {
@@ -66,6 +70,10 @@ const sections = [
 ];
 
 export default function MorePage() {
+    const { hasModuleAccess } = useSubscription();
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [modalConfig, setModalConfig] = useState({ title: "", description: "" });
+
     return (
         <div className="px-4 pt-6 pb-28">
             {/* Header */}
@@ -94,35 +102,61 @@ export default function MorePage() {
                     <div key={section.title}>
                         <p className="section-header px-1">{section.title}</p>
                         <div className="space-y-1.5">
-                            {section.items.map((item, i) => (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className="card card-compact flex items-center gap-3 stagger-item"
-                                    style={{
-                                        animationDelay: `${i * 50}ms`,
-                                        textDecoration: "none",
-                                    }}
-                                >
-                                    <div
-                                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                                        style={{ background: `${item.color}15` }}
+                            {section.items.map((item, i) => {
+                                const moduleName = item.href.replace("/", "").replace(/-/g, "_");
+                                const isLocked = !hasModuleAccess(moduleName) && section.title !== "Settings";
+
+                                return (
+                                    <button
+                                        key={item.href}
+                                        onClick={() => {
+                                            if (isLocked) {
+                                                setModalConfig({
+                                                    title: "Unlock Premium Module",
+                                                    description: `The ${item.label} module is exclusive to DutyDocs Pro users.`
+                                                });
+                                                setShowUpgradeModal(true);
+                                            } else {
+                                                window.location.href = item.href;
+                                            }
+                                        }}
+                                        className="card card-compact flex items-center gap-3 stagger-item w-full group"
+                                        style={{
+                                            animationDelay: `${i * 50}ms`,
+                                            cursor: "pointer",
+                                        }}
                                     >
-                                        <item.icon size={18} style={{ color: item.color }} />
-                                    </div>
-                                    <span
-                                        className="flex-1 text-sm font-medium"
-                                        style={{ color: "var(--color-text-primary)" }}
-                                    >
-                                        {item.label}
-                                    </span>
-                                    <ChevronRight size={16} style={{ color: "var(--color-text-muted)" }} />
-                                </Link>
-                            ))}
+                                        <div
+                                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                            style={{ background: `${item.color}15` }}
+                                        >
+                                            <item.icon size={18} style={{ color: item.color }} />
+                                        </div>
+                                        <span
+                                            className="flex-1 text-sm font-medium text-left"
+                                            style={{ color: isLocked ? "var(--color-text-muted)" : "var(--color-text-primary)" }}
+                                        >
+                                            {item.label}
+                                        </span>
+                                        {isLocked ? (
+                                            <ShieldAlert size={16} className="text-amber-500" />
+                                        ) : (
+                                            <ChevronRight size={16} style={{ color: "var(--color-text-muted)" }} />
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 ))}
             </div>
+
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                title={modalConfig.title}
+                description={modalConfig.description}
+            />
         </div>
     );
 }

@@ -5,6 +5,11 @@ import { Plus, TriangleAlert, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDateTime } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import { useSubscription } from "@/hooks/useSubscription";
+import UpgradeModal from "@/components/UpgradeModal";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface NearMiss {
     id: string;
@@ -18,8 +23,6 @@ interface NearMiss {
     createdAt: string;
 }
 
-const STORE_KEY = "near_misses";
-
 const CATEGORIES = [
     "Slip/Trip Hazard", "Falling Object", "Electrical", "Chemical Spill",
     "Vehicle/Plant", "Working at Height", "Manual Handling", "Fire Risk",
@@ -27,8 +30,27 @@ const CATEGORIES = [
 ];
 
 export default function NearMissPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<NearMiss>({ module: "near_misses", storeKey: "near_misses" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<NearMiss & { title: string }>({
+        module: "near_misses",
+        storeKey: "near_misses"
+    });
+    const { isLimitReached } = useSubscription();
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [form, setForm] = useState({
         description: "", location: "", dateTime: "",
         potentialSeverity: "medium" as NearMiss["potentialSeverity"],
@@ -37,13 +59,28 @@ export default function NearMissPage() {
 
     const handleSave = () => {
         if (!form.description.trim()) return;
-        const newItem: NearMiss = { id: generateId(), ...form, createdAt: new Date().toISOString() };
+
+        if (isLimitReached(totalRecords)) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
+        const newItem: NearMiss & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.description,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("Near miss reported successfully");
         setShowForm(false);
         setForm({ description: "", location: "", dateTime: "", potentialSeverity: "medium", suggestedAction: "", reportedBy: "", category: "" });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Report deleted", "info");
+    };
 
     const handleExportPDF = (item: NearMiss) => {
         const pdf = new DutyDocsPDF();
@@ -142,22 +179,45 @@ export default function NearMissPage() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Near Misses</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} report{items.length !== 1 ? "s" : ""}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} report{totalRecords !== 1 ? "s" : ""}</p>
                 </div>
                 <button onClick={() => setShowForm(true)} className="btn btn-primary">
                     <Plus size={16} /> Report
                 </button>
             </div>
 
-            {items.length === 0 ? (
+            <ModuleToolbar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                placeholder="Search descriptions..."
+                onExport={exportData}
+                onImport={async (file) => {
+                    try {
+                        await importData(file);
+                        showToast("Reports imported successfully");
+                    } catch {
+                        showToast("Failed to import reports", "error");
+                    }
+                }}
+            />
+
+            {loading ? (
+                <RecordSkeleton count={3} />
+            ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <TriangleAlert size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No near misses reported</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Quickly capture close calls to improve safety</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "No matching reports" : "No near misses reported"}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Quickly capture close calls to improve safety"}
+                    </p>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {items.map((item, i) => (
+                    {filteredItems.map((item, i) => (
                         <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(234,179,8,0.1)" }}>
@@ -183,6 +243,12 @@ export default function NearMissPage() {
                     ))}
                 </div>
             )}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                title="Record Limit Reached"
+                description={`You've reached the 50 record limit on the Starter plan. Upgrade to Pro to create unlimited health and safety documents.`}
+            />
         </div>
     );
 }

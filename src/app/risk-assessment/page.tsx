@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import { useSubscription } from "@/hooks/useSubscription";
+import UpgradeModal from "@/components/UpgradeModal";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
 import {
     generateId,
     calculateRiskLevel,
@@ -18,6 +22,7 @@ import {
     formatDate,
     type RiskLevel,
 } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
 
 interface RiskAssessment {
     id: string;
@@ -42,8 +47,23 @@ interface RiskAssessment {
 const STORE_KEY = "risk_assessments";
 
 export default function RiskAssessmentPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<RiskAssessment>({ module: "risk_assessments", storeKey: "risk_assessments" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<RiskAssessment>({ module: "risk_assessments", storeKey: "risk_assessments" });
+    const { isPro, isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [form, setForm] = useState({
         title: "",
         location: "",
@@ -58,9 +78,16 @@ export default function RiskAssessmentPage() {
         responsiblePerson: "",
         reviewDate: "",
     });
+    const { showToast } = useToast();
 
     const handleSave = () => {
         if (!form.title.trim()) return;
+
+        if (isLimitReached(totalRecords)) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
         const riskLevel = calculateRiskLevel(form.likelihood, form.severity);
         const residualRiskLevel = calculateRiskLevel(form.residualLikelihood, form.residualSeverity);
         const newItem: RiskAssessment = {
@@ -72,6 +99,7 @@ export default function RiskAssessmentPage() {
             status: "active",
         };
         addItem(newItem);
+        showToast("Risk assessment saved successfully!");
         setShowForm(false);
         setForm({
             title: "", location: "", assessor: "", hazardDescription: "",
@@ -80,7 +108,10 @@ export default function RiskAssessmentPage() {
         });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Assessment deleted", "info");
+    };
 
     const handleExportPDF = (item: RiskAssessment) => {
         const pdf = new DutyDocsPDF();
@@ -230,15 +261,43 @@ export default function RiskAssessmentPage() {
                 </button>
             </div>
 
-            {items.length === 0 ? (
+            <ModuleToolbar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                placeholder="Search assessments..."
+                onExport={exportData}
+                onImport={async (file) => {
+                    try {
+                        await importData(file);
+                        showToast("Records imported successfully");
+                    } catch {
+                        showToast("Failed to import records", "error");
+                    }
+                }}
+            />
+
+            {loading ? (
+                <div className="space-y-3">
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                    <RecordSkeleton />
+                </div>
+            ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <ClipboardCheck size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No risk assessments yet</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Tap &quot;New&quot; to create your first assessment</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "No matching assessments found" : "No risk assessments yet"}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Tap \"New\" to create your first assessment"}
+                    </p>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {items.map((item, i) => (
+                    {filteredItems.map((item, i) => (
                         <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
                             <div className="flex items-center gap-3">
                                 <div className="flex-1 min-w-0">
@@ -263,6 +322,12 @@ export default function RiskAssessmentPage() {
                     ))}
                 </div>
             )}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                title="Record Limit Reached"
+                description={`You've reached the 50 record limit on the Starter plan. Upgrade to Pro to create unlimited health and safety documents.`}
+            />
         </div>
     );
 }

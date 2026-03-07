@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 const BRAND = {
     navy: [15, 23, 42] as const,       // header bg
     white: [255, 255, 255] as const,
-    orange: [249, 115, 22] as const,    // accent
+    teal: [20, 184, 166] as const,     // accent
     grey: [100, 116, 139] as const,     // secondary text
     lightGrey: [241, 245, 249] as const,// table stripe
     green: [34, 197, 94] as const,
@@ -39,7 +39,7 @@ export class DutyDocsPDF {
         this.doc.rect(0, 0, this.pageWidth, 32, "F");
 
         // Orange accent line
-        this.doc.setFillColor(...BRAND.orange);
+        this.doc.setFillColor(...BRAND.teal);
         this.doc.rect(0, 32, this.pageWidth, 1.5, "F");
 
         // Brand name
@@ -108,7 +108,7 @@ export class DutyDocsPDF {
         this.doc.text(title.toUpperCase(), this.margin, this.y);
         this.y += 2;
         // underline
-        this.doc.setDrawColor(...BRAND.orange);
+        this.doc.setDrawColor(...BRAND.teal);
         this.doc.setLineWidth(0.5);
         this.doc.line(this.margin, this.y, this.margin + this.contentWidth, this.y);
         this.y += 6;
@@ -273,7 +273,7 @@ export class DutyDocsPDF {
         // Category header
         this.doc.setFontSize(9);
         this.doc.setFont("helvetica", "bold");
-        this.doc.setTextColor(...BRAND.orange);
+        this.doc.setTextColor(...BRAND.teal);
         this.doc.text(categoryName, this.margin, this.y);
         this.y += 5;
 
@@ -310,7 +310,7 @@ export class DutyDocsPDF {
         switch (level.toLowerCase()) {
             case "low": return BRAND.green;
             case "medium": return BRAND.yellow;
-            case "high": return BRAND.orange;
+            case "high": return BRAND.teal;
             case "critical": return BRAND.red;
             default: return BRAND.grey;
         }
@@ -332,7 +332,7 @@ export class DutyDocsPDF {
             case "minor":
                 return BRAND.green;
             case "moderate":
-                return BRAND.orange;
+                return BRAND.teal;
             default:
                 return BRAND.grey;
         }

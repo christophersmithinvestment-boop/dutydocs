@@ -5,6 +5,10 @@ import { Plus, Dumbbell, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface ManualHandlingAssessment {
     id: string;
@@ -31,10 +35,25 @@ interface ManualHandlingAssessment {
     createdAt: string;
 }
 
-const STORE_KEY = "manual_handling";
-
 export default function ManualHandlingPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<ManualHandlingAssessment>({ module: "manual_handling", storeKey: "manual_handling" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<ManualHandlingAssessment & { title: string }>({
+        module: "manual_handling",
+        storeKey: "manual_handling"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({
         taskDescription: "", location: "", assessor: "", loadWeight: "", loadDescription: "",
@@ -47,13 +66,24 @@ export default function ManualHandlingPage() {
         if (!form.taskDescription.trim()) return;
         const riskLevel = calculateRiskLevel(form.likelihood, form.severity);
         const residualRiskLevel = calculateRiskLevel(form.residualLikelihood, form.residualSeverity);
-        const newItem: ManualHandlingAssessment = { id: generateId(), ...form, riskLevel, residualRiskLevel, createdAt: new Date().toISOString() };
+        const newItem: ManualHandlingAssessment & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.taskDescription,
+            riskLevel,
+            residualRiskLevel,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("Assessment saved successfully");
         setShowForm(false);
         setForm({ taskDescription: "", location: "", assessor: "", loadWeight: "", loadDescription: "", frequency: "", distance: "", taskFactors: "", individualFactors: "", loadFactors: "", environmentFactors: "", likelihood: 3, severity: 3, controlMeasures: "", residualLikelihood: 1, residualSeverity: 1, reviewDate: "" });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Assessment deleted", "info");
+    };
 
     const handleExportPDF = (item: ManualHandlingAssessment) => {
         const pdf = new DutyDocsPDF();
@@ -173,39 +203,68 @@ export default function ManualHandlingPage() {
     }
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Manual Handling</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} assessment{items.length !== 1 ? "s" : ""}</p>
+        <PremiumModuleGuard moduleName="Manual Handling">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Manual Handling</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} assessment{totalRecords !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> New</button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> New</button>
-            </div>
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <Dumbbell size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No manual handling assessments</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Assess lifting, carrying, and handling tasks</p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.taskDescription}</p>
-                                        <span className={`badge ${getRiskBadgeClass(item.riskLevel)}`}>{item.riskLevel.toUpperCase()}</span>
+
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search tasks..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Assessments imported successfully");
+                        } catch {
+                            showToast("Failed to import assessments", "error");
+                        }
+                    }}
+                />
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <Dumbbell size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching assessments" : "No manual handling assessments"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Assess lifting, carrying, and handling tasks"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {filteredItems.map((item, i) => (
+                            <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(59,130,246,0.1)" }}>
+                                        <Dumbbell size={16} style={{ color: "var(--color-safety-blue)" }} />
                                     </div>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.loadWeight && `${item.loadWeight} · `}{item.location && `${item.location} · `}{formatDate(item.createdAt)}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.taskDescription}</p>
+                                            <span className={`badge ${getRiskBadgeClass(item.riskLevel)}`}>{item.riskLevel.toUpperCase()}</span>
+                                        </div>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.loadWeight && `${item.loadWeight} · `}{item.location && `${item.location} · `}{formatDate(item.createdAt)}</p>
+                                    </div>
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                                 </div>
-                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }

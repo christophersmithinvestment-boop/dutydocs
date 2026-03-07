@@ -5,6 +5,10 @@ import { Plus, HeartPulse, ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDateTime } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface FirstAidEntry {
     id: string;
@@ -19,8 +23,6 @@ interface FirstAidEntry {
     createdAt: string;
 }
 
-
-
 const INJURY_TYPES = [
     "Cut / Wound", "Burn / Scald", "Bruise / Swelling", "Sprain / Strain",
     "Headache / Migraine", "Fainting / Dizziness", "Allergic Reaction",
@@ -29,7 +31,24 @@ const INJURY_TYPES = [
 ];
 
 export default function FirstAidPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<FirstAidEntry>({ module: "first_aid_log", storeKey: "first_aid_log" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<FirstAidEntry & { title: string }>({
+        module: "first_aid_log",
+        storeKey: "first_aid_log"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({
         dateTime: "", patientName: "", location: "", injuryIllness: "",
@@ -39,13 +58,22 @@ export default function FirstAidPage() {
 
     const handleSave = () => {
         if (!form.patientName.trim()) return;
-        const newItem: FirstAidEntry = { id: generateId(), ...form, createdAt: new Date().toISOString() };
+        const newItem: FirstAidEntry & { title: string } = {
+            id: generateId(),
+            ...form,
+            title: form.patientName,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("First Aid entry saved successfully");
         setShowForm(false);
         setForm({ dateTime: "", patientName: "", location: "", injuryIllness: "", treatmentGiven: "", administeredBy: "", outcome: "returned_to_work", followUp: "" });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Entry deleted", "info");
+    };
 
     const handleExportPDF = (item: FirstAidEntry) => {
         const pdf = new DutyDocsPDF();
@@ -109,42 +137,68 @@ export default function FirstAidPage() {
     }
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>First Aid Log</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} entr{items.length !== 1 ? "ies" : "y"}</p>
+        <PremiumModuleGuard moduleName="First Aid Log">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>First Aid Log</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} entr{totalRecords !== 1 ? "ies" : "y"}</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Log</button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Log</button>
-            </div>
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <HeartPulse size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No first aid entries</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Record all first aid treatment given on site</p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(239,68,68,0.1)" }}>
-                                    <HeartPulse size={16} style={{ color: "var(--color-safety-red)" }} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.patientName}</p>
-                                        <span className={`badge ${outcomeBadge(item.outcome).class}`}>{outcomeBadge(item.outcome).label}</span>
+
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search name..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Entries imported successfully");
+                        } catch {
+                            showToast("Failed to import entries", "error");
+                        }
+                    }}
+                />
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <HeartPulse size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching entries" : "No first aid entries"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Record all first aid treatment given on site"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {filteredItems.map((item, i) => (
+                            <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(239,68,68,0.1)" }}>
+                                        <HeartPulse size={16} style={{ color: "var(--color-safety-red)" }} />
                                     </div>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.injuryIllness && `${item.injuryIllness} · `}{formatDate(item.createdAt)}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.patientName}</p>
+                                            <span className={`badge ${outcomeBadge(item.outcome).class}`}>{outcomeBadge(item.outcome).label}</span>
+                                        </div>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.injuryIllness && `${item.injuryIllness} · `}{formatDate(item.createdAt)}</p>
+                                    </div>
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                                 </div>
-                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }

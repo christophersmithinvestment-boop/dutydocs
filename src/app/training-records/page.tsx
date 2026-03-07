@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { Plus, GraduationCap, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-react";
-import { generateId, formatDate } from "@/lib/utils";
+import { generateId, formatDate, getExpiryStatus, getExpiryBadgeClass } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
+import PremiumModuleGuard from "@/components/PremiumModuleGuard";
+import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+import { ModuleToolbar } from "@/components/ModuleToolbar";
 
 interface TrainingRecord {
     id: string;
@@ -16,12 +20,10 @@ interface TrainingRecord {
     dateCompleted: string;
     expiryDate: string;
     certificateRef: string;
-    status: "valid" | "expiring" | "expired" | "pending";
+    status: "valid" | "expiring" | "expired" | "pending" | "none";
     notes: string;
     createdAt: string;
 }
-
-const STORE_KEY = "training_records";
 
 const COURSE_TYPES = [
     "Fire Safety", "First Aid at Work", "Emergency First Aid", "Manual Handling",
@@ -34,7 +36,24 @@ const COURSE_TYPES = [
 ];
 
 export default function TrainingRecordsPage() {
-    const { items, loading, addItem, removeItem } = useModuleData<TrainingRecord>({ module: "training_records", storeKey: "training_records" });
+    const {
+        items,
+        filteredItems,
+        searchTerm,
+        setSearchTerm,
+        statusFilter,
+        setStatusFilter,
+        loading,
+        totalRecords,
+        addItem,
+        removeItem,
+        exportData,
+        importData
+    } = useModuleData<TrainingRecord & { title: string }>({
+        module: "training_records",
+        storeKey: "training_records"
+    });
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({
         employeeName: "", department: "", courseName: "", courseType: "",
@@ -43,19 +62,24 @@ export default function TrainingRecordsPage() {
 
     const handleSave = () => {
         if (!form.employeeName.trim() || !form.courseName.trim()) return;
-        let status: TrainingRecord["status"] = "valid";
-        if (form.expiryDate) {
-            const diff = new Date(form.expiryDate).getTime() - Date.now();
-            if (diff < 0) status = "expired";
-            else if (diff < 30 * 24 * 60 * 60 * 1000) status = "expiring";
-        }
-        const newItem: TrainingRecord = { id: generateId(), ...form, status, createdAt: new Date().toISOString() };
+        const status = getExpiryStatus(form.expiryDate);
+        const newItem: TrainingRecord & { title: string } = {
+            id: generateId(),
+            ...form,
+            status,
+            title: `${form.employeeName} - ${form.courseName}`,
+            createdAt: new Date().toISOString()
+        };
         addItem(newItem);
+        showToast("Training record saved successfully");
         setShowForm(false);
         setForm({ employeeName: "", department: "", courseName: "", courseType: "", provider: "", dateCompleted: "", expiryDate: "", certificateRef: "", notes: "" });
     };
 
-    const handleDelete = (id: string) => removeItem(id);
+    const handleDelete = (id: string) => {
+        removeItem(id);
+        showToast("Record deleted", "info");
+    };
 
     const handleExportPDF = (item: TrainingRecord) => {
         const pdf = new DutyDocsPDF();
@@ -75,7 +99,13 @@ export default function TrainingRecordsPage() {
         pdf.save(`training-record-${item.id.split("-")[0]}.pdf`);
     };
 
-    const statusBadge = (s: string) => { switch (s) { case "valid": return { class: "badge-green", label: "Valid" }; case "expiring": return { class: "badge-yellow", label: "Expiring Soon" }; case "expired": return { class: "badge-red", label: "Expired" }; case "pending": return { class: "badge-blue", label: "Pending" }; default: return { class: "badge-blue", label: s }; } };
+    const statusBadge = (s: string) => {
+        const status = s as any;
+        return {
+            class: getExpiryBadgeClass(status),
+            label: status === "expiring" ? "Expiring Soon" : status.charAt(0).toUpperCase() + status.slice(1)
+        };
+    };
 
     const expiredCount = items.filter((i) => i.status === "expired").length;
     const expiringCount = items.filter((i) => i.status === "expiring").length;
@@ -111,63 +141,88 @@ export default function TrainingRecordsPage() {
     }
 
     return (
-        <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Training Records</h1>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} record{items.length !== 1 ? "s" : ""}</p>
+        <PremiumModuleGuard moduleName="Training Records">
+            <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Training Records</h1>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} record{totalRecords !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
-            </div>
 
-            {/* Alerts */}
-            {(expiredCount > 0 || expiringCount > 0) && (
-                <div className="mb-4 space-y-2">
-                    {expiredCount > 0 && (
-                        <div className="card card-compact flex items-center gap-3" style={{ borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.05)" }}>
-                            <AlertCircle size={16} style={{ color: "var(--color-safety-red)", flexShrink: 0 }} />
-                            <span className="text-sm font-medium" style={{ color: "var(--color-safety-red)" }}>{expiredCount} expired certificate{expiredCount !== 1 ? "s" : ""} — renewal required</span>
-                        </div>
-                    )}
-                    {expiringCount > 0 && (
-                        <div className="card card-compact flex items-center gap-3" style={{ borderColor: "rgba(234,179,8,0.3)", background: "rgba(234,179,8,0.05)" }}>
-                            <AlertCircle size={16} style={{ color: "var(--color-safety-yellow)", flexShrink: 0 }} />
-                            <span className="text-sm font-medium" style={{ color: "var(--color-safety-yellow)" }}>{expiringCount} certificate{expiringCount !== 1 ? "s" : ""} expiring within 30 days</span>
-                        </div>
-                    )}
-                </div>
-            )}
+                <ModuleToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    placeholder="Search name or course..."
+                    onExport={exportData}
+                    onImport={async (file) => {
+                        try {
+                            await importData(file);
+                            showToast("Records imported successfully");
+                        } catch {
+                            showToast("Failed to import records", "error");
+                        }
+                    }}
+                />
 
-            {items.length === 0 ? (
-                <div className="empty-state">
-                    <GraduationCap size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>No training records</p>
-                    <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Track staff training, certificates, and expiry dates</p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {items.map((item, i) => (
-                        <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(16,185,129,0.1)" }}>
-                                    <GraduationCap size={16} style={{ color: "var(--color-safety-green)" }} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.courseName}</p>
-                                        <span className={`badge ${statusBadge(item.status).class}`}>{statusBadge(item.status).label}</span>
-                                    </div>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                                        {item.employeeName}{item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
-                                    </p>
-                                </div>
-                                <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                {/* Alerts */}
+                {(expiredCount > 0 || expiringCount > 0) && (
+                    <div className="mb-4 space-y-2">
+                        {expiredCount > 0 && (
+                            <div className="card card-compact flex items-center gap-3" style={{ borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.05)" }}>
+                                <AlertCircle size={16} style={{ color: "var(--color-safety-red)", flexShrink: 0 }} />
+                                <span className="text-sm font-medium" style={{ color: "var(--color-safety-red)" }}>{expiredCount} expired certificate{expiredCount !== 1 ? "s" : ""} — renewal required</span>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        )}
+                        {expiringCount > 0 && (
+                            <div className="card card-compact flex items-center gap-3" style={{ borderColor: "rgba(234,179,8,0.3)", background: "rgba(234,179,8,0.05)" }}>
+                                <AlertCircle size={16} style={{ color: "var(--color-safety-yellow)", flexShrink: 0 }} />
+                                <span className="text-sm font-medium" style={{ color: "var(--color-safety-yellow)" }}>{expiringCount} certificate{expiringCount !== 1 ? "s" : ""} expiring within 30 days</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {loading ? (
+                    <RecordSkeleton count={3} />
+                ) : filteredItems.length === 0 ? (
+                    <div className="empty-state">
+                        <GraduationCap size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "No matching records" : "No training records"}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                            {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Track staff training, certificates, and expiry dates"}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {filteredItems.map((item, i) => (
+                            <div key={item.id} className="card card-compact stagger-item" style={{ animationDelay: `${i * 60}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(16,185,129,0.1)" }}>
+                                        <GraduationCap size={16} style={{ color: "var(--color-safety-green)" }} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.courseName}</p>
+                                            <span className={`badge ${statusBadge(item.status).class}`}>{statusBadge(item.status).label}</span>
+                                        </div>
+                                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                            {item.employeeName}{item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PremiumModuleGuard>
     );
 }
