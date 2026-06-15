@@ -9,6 +9,9 @@ export const CORE_MODULES = [
     "rams",
     "incidents",
     "near_misses",
+    "risk_assessment",
+    "coshh",
+    "near_miss",
 ];
 
 export const MASTER_EMAILS = ["chris@dutydocs.com", "admin@dutydocs.com"];
