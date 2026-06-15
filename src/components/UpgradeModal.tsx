@@ -52,9 +52,9 @@ export default function UpgradeModal({
                     <div className="space-y-3 mb-10 text-left bg-[var(--color-bg-secondary)] p-5 rounded-2xl border border-[var(--color-border)]">
                         {[
                             "Unlimited records and reports",
-                            "Access to all 16 premium modules",
+                            "Access to all 16 modules",
                             "Priority support & cloud backup",
-                            "Export professional PDF documents"
+                            "Cloud sync, backup \& expiry alerts"
                         ].map((feature, i) => (
                             <div key={i} className="flex items-center gap-3">
                                 <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
@@ -69,7 +69,7 @@ export default function UpgradeModal({
                         onClick={() => upgrade()}
                         className="btn btn-primary w-full py-4 text-base font-bold flex items-center justify-center gap-2 mb-3 shadow-lg shadow-emerald-600/20"
                     >
-                        <Crown size={18} /> Upgrade to Pro — £9.99
+                        <Crown size={18} /> Upgrade to Pro — £19.99/month
                     </button>
 
                     <button

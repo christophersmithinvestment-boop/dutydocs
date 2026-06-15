@@ -48,7 +48,7 @@ const PRICING = [
     },
     {
         name: "Pro",
-        price: "£9.99",
+        price: "£19.99",
         period: "/month",
         desc: "For growing businesses that need full compliance",
         features: ["Unlimited records", "All 16 modules", "Cloud sync & backup", "Priority support", "Team collaboration", "Expiry alerts"],
@@ -56,10 +56,10 @@ const PRICING = [
         popular: true,
     },
     {
-        name: "Enterprise",
-        price: "Custom",
-        period: "",
-        desc: "For organisations with advanced requirements",
+        name: "Business",
+        price: "£49",
+        period: "/month",
+        desc: "For teams managing compliance across a site or organisation",
         features: ["Everything in Pro", "Multi-site management", "Custom branding", "SSO & audit logs", "Dedicated account manager", "API access"],
         cta: "Contact Sales",
         popular: false,
