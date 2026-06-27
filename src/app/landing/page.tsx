@@ -326,6 +326,27 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* ─── Trusted By / About Us ──────────────────────────────── */}
+            <section style={{ padding: "5rem 1.5rem", background: "var(--color-bg-secondary)" }}>
+                <div style={{ maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
+                    <p className="section-header" style={{ color: "#a855f7", letterSpacing: "0.12em", marginBottom: "1rem" }}>ABOUT US & TRUSTED PARTNERS</p>
+                    <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "2rem" }}>
+                        Trusted by industry leaders
+                    </h2>
+                    <p style={{ color: "var(--color-text-secondary)", maxWidth: 700, margin: "0 auto 4rem", fontSize: "1.0625rem", lineHeight: 1.6 }}>
+                        DutyDocs was built by safety professionals, for safety professionals. Our mission is to eliminate paperwork, reduce risk, and make compliance effortless across every industry. We partner with top security, construction, and property management firms to deliver real-time accountability.
+                    </p>
+                    
+                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                        {/* Placeholder Logos */}
+                        <div className="text-xl font-bold font-serif">Acme Corp</div>
+                        <div className="text-xl font-bold font-sans tracking-widest">GLOBALTECH</div>
+                        <div className="text-xl font-bold italic">SafeBuild Ltd</div>
+                        <div className="text-xl font-bold font-mono">SECURE+</div>
+                    </div>
+                </div>
+            </section>
+
             {/* ─── CTA Banner ──────────────────────────────────────── */}
             <section style={{ padding: "0 1.5rem 5rem" }}>
                 <div style={{
@@ -368,7 +389,7 @@ export default function LandingPage() {
                     <div className="flex items-center gap-4" style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
                         <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Privacy</a>
                         <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Terms</a>
-                        <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Contact</a>
+                        <Link href="/contact" style={{ color: "inherit", textDecoration: "none" }}>Contact</Link>
                     </div>
                 </div>
             </footer>
