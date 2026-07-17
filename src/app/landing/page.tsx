@@ -311,18 +311,26 @@ export default function LandingPage() {
                                 ))}
                             </ul>
 
-                            {planItem.name === "Pro" && user ? (
+                            {planItem.name === "Pro" ? (
                                 <button
                                     onClick={upgrade}
                                     className="btn btn-full btn-primary"
                                     style={{ padding: "0.875rem", fontSize: "0.9375rem" }}
                                 >
-                                    {isPro ? "Manage Subscription" : "Upgrade to Pro"} <ChevronRight size={16} />
+                                    Join the waitlist <ChevronRight size={16} />
                                 </button>
+                            ) : planItem.name === "Business" ? (
+                                <a
+                                    href="mailto:hello@dutydocsapp.com?subject=DutyDocs%20Business%20enquiry"
+                                    className="btn btn-full btn-secondary"
+                                    style={{ padding: "0.875rem", fontSize: "0.9375rem" }}
+                                >
+                                    {planItem.cta} <ChevronRight size={16} />
+                                </a>
                             ) : (
                                 <Link
                                     href="/signup"
-                                    className={`btn btn-full ${planItem.popular ? "btn-primary" : "btn-secondary"}`}
+                                    className="btn btn-full btn-secondary"
                                     style={{ padding: "0.875rem", fontSize: "0.9375rem" }}
                                 >
                                     {planItem.cta} <ChevronRight size={16} />

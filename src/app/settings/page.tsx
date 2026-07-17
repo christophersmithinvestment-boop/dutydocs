@@ -144,7 +144,7 @@ export default function SettingsPage() {
                             className="btn btn-primary btn-full"
                             style={{ padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
                         >
-                            <Crown size={16} /> Upgrade to Pro — £9.99/month
+                            <Crown size={16} /> Join the Pro waitlist
                         </button>
                     ) : (
                         <button

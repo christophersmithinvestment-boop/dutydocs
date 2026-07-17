@@ -69,8 +69,11 @@ export default function UpgradeModal({
                         onClick={() => upgrade()}
                         className="btn btn-primary w-full py-4 text-base font-bold flex items-center justify-center gap-2 mb-3 shadow-lg shadow-emerald-600/20"
                     >
-                        <Crown size={18} /> Upgrade to Pro — £19.99/month
+                        <Crown size={18} /> Join the Pro waitlist
                     </button>
+                    <p className="text-[11px] text-[var(--color-text-muted)] mb-3">
+                        Pro (£19.99/month) is launching soon — waitlist members get first access.
+                    </p>
 
                     <button
                         onClick={onClose}

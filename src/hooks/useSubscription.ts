@@ -14,7 +14,16 @@ export const CORE_MODULES = [
     "near_miss",
 ];
 
-export const MASTER_EMAILS = ["chris@dutydocs.com", "admin@dutydocs.com"];
+export const MASTER_EMAILS = [
+    "christophersmithinvestment@gmail.com",
+    "hello@dutydocsapp.com",
+];
+
+// Launch mode: billing is not live yet. upgrade() collects waitlist
+// interest by email instead of opening Stripe checkout. To re-enable
+// billing, restore the /api/stripe/checkout call below.
+const WAITLIST_MODE = true;
+const WAITLIST_EMAIL = "hello@dutydocsapp.com";
 
 export function useSubscription() {
     const { user } = useAuth();
@@ -38,6 +47,14 @@ export function useSubscription() {
     };
 
     const upgrade = async () => {
+        if (WAITLIST_MODE) {
+            const subject = encodeURIComponent("DutyDocs Pro waitlist");
+            const body = encodeURIComponent(
+                `Hi,\n\nPlease add me to the DutyDocs Pro waitlist.\n\nAccount email: ${user?.email ?? "(not signed in)"}`
+            );
+            window.location.href = `mailto:${WAITLIST_EMAIL}?subject=${subject}&body=${body}`;
+            return;
+        }
         if (!user?.email || !user?.id) return;
         try {
             const res = await fetch("/api/stripe/checkout", {
