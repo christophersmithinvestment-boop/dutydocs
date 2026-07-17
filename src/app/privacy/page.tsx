@@ -8,13 +8,14 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
     return (
-        <LegalPage title="Privacy Policy" updated="13 July 2026">
+        <LegalPage title="Privacy Policy" updated="17 July 2026">
             <LegalSection title="1. Who we are">
                 <p>
                     DutyDocs (&quot;we&quot;, &quot;us&quot;) provides health &amp; safety record-keeping software
                     at dutydocsapp.com and through our mobile apps. DutyDocs is operated by{" "}
-                    <strong>[Company Name] ([Company Number])</strong>, registered at{" "}
-                    <strong>[Registered Address]</strong>. For anything in this policy, contact us at{" "}
+                    <strong>Chris Smith, trading as DutyDocs</strong>, and Chris Smith is the data
+                    controller for the personal data described in this policy. For anything in this
+                    policy, contact us at{" "}
                     <a href="mailto:hello@dutydocsapp.com" style={{ color: "var(--color-accent)" }}>hello@dutydocsapp.com</a>.
                 </p>
             </LegalSection>

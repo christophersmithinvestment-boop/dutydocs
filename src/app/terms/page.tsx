@@ -8,104 +8,126 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
     return (
-        <LegalPage title="Terms of Service" updated="13 July 2026">
-            <LegalSection title="1. The agreement">
+        <LegalPage title="Terms of Service" updated="17 July 2026">
+            <LegalSection title="1. What DutyDocs is">
                 <p>
-                    These terms are a contract between you and <strong>[Company Name] ([Company
-                    Number])</strong>, registered at <strong>[Registered Address]</strong>{" "}
-                    (&quot;DutyDocs&quot;, &quot;we&quot;). By creating an account you agree to them. If
-                    you are using DutyDocs on behalf of a business, you confirm you have authority to
-                    bind that business.
+                    These Terms of Service (&quot;Terms&quot;) govern your use of DutyDocs (the
+                    &quot;App&quot;), operated by <strong>Chris Smith, trading as DutyDocs</strong>{" "}
+                    (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). By creating an account or using
+                    the App, you agree to these Terms.
+                </p>
+                <p>
+                    DutyDocs is a record-keeping tool that helps businesses organise and store health
+                    and safety documentation, including risk assessments, incident reports, training
+                    records, permits to work, and similar workplace safety documents.
+                </p>
+                <p>
+                    <strong>DutyDocs is a record-keeping tool, not a source of professional health and
+                    safety advice.</strong> It does not replace the judgement of a qualified health and
+                    safety professional, and using the App does not guarantee legal compliance with any
+                    health and safety regulation. You remain responsible for ensuring your own
+                    compliance with all applicable laws and regulations.
                 </p>
             </LegalSection>
 
-            <LegalSection title="2. What DutyDocs is">
+            <LegalSection title="2. Accounts">
                 <p>
-                    DutyDocs is a record-keeping and documentation tool for workplace health &amp; safety:
-                    risk assessments, incident reports, training records, permits, and similar documents.
+                    You must provide accurate information when creating an account, and you are
+                    responsible for keeping your login details secure. You must be legally able to
+                    enter a contract in your jurisdiction to use DutyDocs. If you are using DutyDocs on
+                    behalf of a business, you confirm you have authority to bind that business to these
+                    Terms.
                 </p>
             </LegalSection>
 
-            <LegalSection title="3. What DutyDocs is not">
+            <LegalSection title="3. Plans and payment">
                 <p>
-                    <strong>DutyDocs is not legal, regulatory, or professional health &amp; safety
-                    advice, and using it does not by itself make you compliant with health &amp; safety
-                    law.</strong> Templates, checklists, and scoring tools are starting points that you
-                    must adapt to your own workplace. Responsibility for the accuracy and adequacy of
-                    your assessments, and for complying with the law (including the Health and Safety at
-                    Work etc. Act 1974 and RIDDOR reporting duties), stays with you and your competent
-                    persons.
+                    DutyDocs offers a Free plan and paid plans (where available). Paid plans are billed
+                    via Stripe, and prices are shown in the App before you subscribe. You may cancel a
+                    paid plan at any time; cancellation takes effect at the end of the current billing
+                    period, and we do not give partial refunds for unused time unless the law requires
+                    it. We may change pricing with reasonable notice to existing subscribers.
                 </p>
             </LegalSection>
 
-            <LegalSection title="4. Your account and acceptable use">
+            <LegalSection title="4. Your content">
                 <p>
-                    Keep your login credentials confidential; you are responsible for activity under your
-                    account. You must not use DutyDocs to store unlawful content, attempt to break or
-                    overload the service, or resell it without our written agreement.
+                    You retain ownership of the records, documents, and data you create or upload to
+                    DutyDocs, and you can export your records at any time. You are responsible for the
+                    accuracy of the information you enter. You grant us a limited licence to store and
+                    process your content solely to provide the App&apos;s functionality to you. Our{" "}
+                    <a href="/privacy" style={{ color: "var(--color-accent)" }}>Privacy Policy</a>{" "}
+                    explains how we handle personal data.
+                </p>
+                <p>
+                    On the Free plan, records are stored locally on your device. We cannot recover
+                    Free-plan data from a lost device or cleared browser storage — back up regularly or
+                    upgrade to cloud sync.
                 </p>
             </LegalSection>
 
-            <LegalSection title="5. Your data">
+            <LegalSection title="5. Acceptable use">
+                <p>You agree not to:</p>
                 <p>
-                    Your records belong to you. You grant us the limited licence needed to host, process,
-                    back up, and display them to you and your team. You are responsible for the accuracy
-                    of what you record and for your lawful basis to record personal data about others.
-                    Our <a href="/privacy" style={{ color: "var(--color-accent)" }}>Privacy Policy</a>{" "}
-                    explains how we handle data. You can export your records at any time.
-                </p>
-                <p>
-                    On the free plan, records are stored locally on your device. We cannot recover
-                    free-plan data from a lost device or cleared browser storage — back up regularly or
-                    use cloud sync.
+                    — Use DutyDocs for any unlawful purpose<br />
+                    — Attempt to access other users&apos; accounts or data without authorisation<br />
+                    — Interfere with or disrupt the App&apos;s operation<br />
+                    — Reverse-engineer or attempt to extract the App&apos;s source code
                 </p>
             </LegalSection>
 
-            <LegalSection title="6. Plans and billing">
+            <LegalSection title="6. Limitation of liability">
+                <p>To the fullest extent permitted by law:</p>
                 <p>
-                    The free plan has usage limits shown at sign-up. Paid subscriptions are billed in
-                    advance (monthly, via Stripe) and renew automatically. You can cancel at any time and
-                    keep access until the end of the paid period; we do not give partial refunds for
-                    unused time unless the law requires it. We will give you at least 30 days&apos;
-                    notice by email before any price increase takes effect.
+                    DutyDocs is provided &quot;as is&quot; without warranties of any kind, express or
+                    implied. We are not liable for any indirect, incidental, or consequential losses
+                    arising from your use of the App, including but not limited to loss of data, loss
+                    of profit, or regulatory penalties. Our total liability to you for any claim
+                    arising from your use of DutyDocs is limited to the amount you paid us in the 12
+                    months prior to the claim (or £0 if you are on the Free plan).
+                </p>
+                <p>
+                    Nothing in these Terms excludes liability that cannot be excluded under UK law,
+                    such as liability for death or personal injury caused by negligence, or fraud.
                 </p>
             </LegalSection>
 
             <LegalSection title="7. Availability">
                 <p>
-                    We work to keep DutyDocs available and your data safe, but we do not guarantee
-                    uninterrupted or error-free service, and maintenance windows may occur. Offline
-                    features depend on your device.
+                    We aim to keep DutyDocs available and reliable, but we don&apos;t guarantee
+                    uninterrupted access. We may carry out maintenance, updates, or occasionally
+                    experience downtime. Offline features depend on your device.
                 </p>
             </LegalSection>
 
-            <LegalSection title="8. Liability">
+            <LegalSection title="8. Termination">
                 <p>
-                    Nothing in these terms excludes liability that cannot be excluded under the law of
-                    England and Wales (including for death or personal injury caused by our negligence,
-                    or fraud). Subject to that: we are not liable for indirect or consequential losses,
-                    loss of profits, or regulatory penalties arising from your use of the service, and
-                    our total liability in any 12-month period is capped at the amount you paid us in
-                    that period.
+                    You may stop using DutyDocs and delete your account at any time; you may export
+                    your data first, and we then delete it as described in the Privacy Policy. We may
+                    suspend or terminate accounts that breach these Terms, or for extended non-payment
+                    on paid plans.
                 </p>
             </LegalSection>
 
-            <LegalSection title="9. Ending the agreement">
+            <LegalSection title="9. Changes to these Terms">
                 <p>
-                    You can close your account at any time from Settings or by emailing us. We may
-                    suspend or terminate accounts that break these terms, giving notice where reasonable.
-                    On closure, you may export your data; we then delete it as described in the Privacy
-                    Policy.
+                    We may update these Terms from time to time and will give you notice of material
+                    changes by email or in the App before they take effect. Continued use of the App
+                    after changes take effect constitutes acceptance of the updated Terms.
                 </p>
             </LegalSection>
 
-            <LegalSection title="10. General">
+            <LegalSection title="10. Governing law">
                 <p>
-                    We may update these terms and will give you notice of material changes before they
-                    take effect; continuing to use DutyDocs after that constitutes acceptance. These
-                    terms are governed by the law of England and Wales, and the courts of England and
-                    Wales have exclusive jurisdiction. Questions:{" "}
-                    <a href="mailto:hello@dutydocsapp.com" style={{ color: "var(--color-accent)" }}>hello@dutydocsapp.com</a>.
+                    These Terms are governed by the laws of England and Wales. Any disputes will be
+                    subject to the exclusive jurisdiction of the courts of England and Wales.
+                </p>
+            </LegalSection>
+
+            <LegalSection title="11. Contact">
+                <p>
+                    Questions about these Terms:{" "}
+                    <a href="mailto:hello@dutydocsapp.com" style={{ color: "var(--color-accent)" }}>hello@dutydocsapp.com</a>
                 </p>
             </LegalSection>
         </LegalPage>
