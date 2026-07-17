@@ -5,6 +5,7 @@ const BRAND = {
     navy: [15, 23, 42] as const,       // header bg
     white: [255, 255, 255] as const,
     teal: [20, 184, 166] as const,     // accent
+    orange: [249, 115, 22] as const,   // high risk
     grey: [100, 116, 139] as const,     // secondary text
     lightGrey: [241, 245, 249] as const,// table stripe
     green: [34, 197, 94] as const,
@@ -282,7 +283,7 @@ export class DutyDocsPDF {
             ["Item", "Status", "Notes"],
             items.map((item) => [
                 item.label,
-                item.status === "pass" ? "✓ Pass" : item.status === "fail" ? "✗ Fail" : item.status === "na" ? "N/A" : "—",
+                item.status === "pass" ? "PASS" : item.status === "fail" ? "FAIL" : item.status === "na" ? "N/A" : "-",
                 item.notes,
             ]),
             colWidths
@@ -310,7 +311,7 @@ export class DutyDocsPDF {
         switch (level.toLowerCase()) {
             case "low": return BRAND.green;
             case "medium": return BRAND.yellow;
-            case "high": return BRAND.teal;
+            case "high": return BRAND.orange;
             case "critical": return BRAND.red;
             default: return BRAND.grey;
         }
@@ -332,7 +333,7 @@ export class DutyDocsPDF {
             case "minor":
                 return BRAND.green;
             case "moderate":
-                return BRAND.teal;
+                return BRAND.yellow;
             default:
                 return BRAND.grey;
         }

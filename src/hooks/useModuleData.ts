@@ -79,6 +79,7 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
 
     // ─── Delete a record ──────────────────────────────────────────
     const removeItem = useCallback(async (id: string) => {
+        if (!window.confirm("Delete this record? This cannot be undone.")) return;
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
         setTotalRecords(prev => Math.max(0, prev - 1));
