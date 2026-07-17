@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, MapPin, Send, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Mail, MapPin, Send, CheckCircle2 } from "lucide-react";
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
 
 export default function ContactPage() {
@@ -10,16 +10,17 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStatus("submitting");
-
-    // Simulate an API call
-    setTimeout(() => {
-      setStatus("success");
-    }, 1500);
+    const form = new FormData(e.currentTarget);
+    const name = `${form.get("firstName")} ${form.get("lastName")}`.trim();
+    const company = form.get("company");
+    const subject = encodeURIComponent(`DutyDocs enquiry from ${name}${company ? ` (${company})` : ""}`);
+    const body = encodeURIComponent(`${form.get("message")}\n\n— ${name}\n${form.get("email")}`);
+    window.location.href = `mailto:hello@dutydocsapp.com?subject=${subject}&body=${body}`;
+    setStatus("success");
   };
 
   return (
-    <div className="min-h-dvh flex flex-col" style={{ background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}>
+    <div className="min-h-dvh flex flex-col" style={{ background: "transparent", color: "var(--color-text-primary)" }}>
       <nav style={{ padding: "1.5rem", borderBottom: "1px solid var(--color-border)" }}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -59,20 +60,8 @@ export default function ContactPage() {
                   <MapPin size={24} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white text-lg">Office</h3>
-                  <p className="text-slate-400 mt-1">Come say hello at our UK headquarters.</p>
-                  <p className="text-slate-300 font-medium mt-2">123 Safety Way<br/>London, UK<br/>EC1A 1BB</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 flex-shrink-0">
-                  <Phone size={24} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white text-lg">Phone</h3>
-                  <p className="text-slate-400 mt-1">Mon-Fri from 9am to 5pm.</p>
-                  <p className="text-slate-300 font-medium mt-2">+44 (0) 20 7946 0958</p>
+                  <h3 className="font-semibold text-white text-lg">Based in the UK</h3>
+                  <p className="text-slate-400 mt-1">Built for UK health &amp; safety compliance — RIDDOR, COSHH, and UK GDPR aware.</p>
                 </div>
               </div>
             </div>
@@ -85,8 +74,8 @@ export default function ContactPage() {
                 <div className="w-20 h-20 bg-teal-500/20 text-teal-400 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 size={40} />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Message Sent!</h3>
-                <p className="text-slate-400 mb-8">Thanks for reaching out. One of our safety experts will get back to you within 24 hours.</p>
+                <h3 className="text-2xl font-bold text-white mb-2">Almost there!</h3>
+                <p className="text-slate-400 mb-8">Your email app should have opened with your message ready to go — just hit send. We&apos;ll get back to you as soon as we can.</p>
                 <button 
                   onClick={() => setStatus("idle")} 
                   className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
@@ -102,7 +91,7 @@ export default function ContactPage() {
                   <div className="space-y-2">
                     <label htmlFor="firstName" className="text-sm font-medium text-slate-300">First name</label>
                     <input 
-                      id="firstName" 
+                      id="firstName" name="firstName" 
                       required 
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all" 
                       placeholder="Jane"
@@ -111,7 +100,7 @@ export default function ContactPage() {
                   <div className="space-y-2">
                     <label htmlFor="lastName" className="text-sm font-medium text-slate-300">Last name</label>
                     <input 
-                      id="lastName" 
+                      id="lastName" name="lastName" 
                       required 
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all" 
                       placeholder="Doe"
@@ -122,7 +111,7 @@ export default function ContactPage() {
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-slate-300">Email</label>
                   <input 
-                    id="email" 
+                    id="email" name="email" 
                     type="email" 
                     required 
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all" 
@@ -133,7 +122,7 @@ export default function ContactPage() {
                 <div className="space-y-2">
                   <label htmlFor="company" className="text-sm font-medium text-slate-300">Company (Optional)</label>
                   <input 
-                    id="company" 
+                    id="company" name="company" 
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all" 
                     placeholder="Acme Construction Ltd"
                   />
@@ -142,7 +131,7 @@ export default function ContactPage() {
                 <div className="space-y-2">
                   <label htmlFor="message" className="text-sm font-medium text-slate-300">Message</label>
                   <textarea 
-                    id="message" 
+                    id="message" name="message" 
                     required 
                     rows={4}
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all resize-none" 

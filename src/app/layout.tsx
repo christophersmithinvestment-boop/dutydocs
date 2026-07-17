@@ -1,9 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-body",
+});
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "DutyDocs – Health & Safety",
@@ -36,8 +45,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body
-        className={`${inter.className} min-h-dvh antialiased flex`}
-        style={{ background: "var(--color-bg-primary)" }}
+        className={`${inter.className} ${inter.variable} ${spaceGrotesk.variable} min-h-dvh antialiased flex`}
       >
         <AppShell>{children}</AppShell>
       </body>

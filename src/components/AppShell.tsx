@@ -8,7 +8,16 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { ToastProvider } from "@/components/ui/Toast";
 
-const AUTH_PAGES = ["/login", "/signup", "/landing"];
+const AUTH_PAGES = [
+    "/login",
+    "/signup",
+    "/landing",
+    "/privacy",
+    "/terms",
+    "/contact",
+    "/forgot-password",
+    "/reset-password",
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
     const pathname = usePathname();

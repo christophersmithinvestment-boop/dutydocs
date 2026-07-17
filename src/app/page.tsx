@@ -31,7 +31,7 @@ export default function RootPage() {
   return (
     <div
       className="min-h-dvh flex flex-col items-center justify-center gap-4"
-      style={{ background: "var(--color-bg-primary)" }}
+      style={{ background: "transparent" }}
     >
       <DutyDocsLogo size={48} />
       <Loader2

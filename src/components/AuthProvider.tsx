@@ -22,7 +22,21 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 // Public routes that don't require auth
-const PUBLIC_ROUTES = ["/login", "/signup", "/landing", "/"];
+const PUBLIC_ROUTES = [
+    "/login",
+    "/signup",
+    "/landing",
+    "/",
+    "/privacy",
+    "/terms",
+    "/contact",
+    "/forgot-password",
+    "/reset-password",
+];
+
+// Auth-flow pages that signed-in users get bounced away from
+// (legal/contact pages stay reachable when signed in)
+const AUTH_FLOW_ROUTES = ["/login", "/signup", "/landing", "/"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -57,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!user && !isPublic) {
             router.replace("/landing");
-        } else if (user && isPublic) {
+        } else if (user && AUTH_FLOW_ROUTES.includes(pathname)) {
             router.replace("/dashboard");
         }
     }, [user, loading, pathname, router]);
@@ -74,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return (
             <div
                 className="min-h-dvh flex flex-col items-center justify-center gap-4"
-                style={{ background: "var(--color-bg-primary)" }}
+                style={{ background: "transparent" }}
             >
                 <DutyDocsLogo size={48} />
                 <Loader2

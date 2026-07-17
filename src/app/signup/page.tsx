@@ -52,7 +52,7 @@ export default function SignupPage() {
         return (
             <div
                 className="min-h-dvh flex items-center justify-center px-6"
-                style={{ background: "var(--color-bg-primary)" }}
+                style={{ background: "transparent" }}
             >
                 <div className="w-full max-w-sm text-center">
                     <div
@@ -89,7 +89,7 @@ export default function SignupPage() {
     return (
         <div
             className="min-h-dvh flex items-center justify-center px-6"
-            style={{ background: "var(--color-bg-primary)" }}
+            style={{ background: "transparent" }}
         >
             <div className="w-full max-w-sm">
                 {/* Logo */}

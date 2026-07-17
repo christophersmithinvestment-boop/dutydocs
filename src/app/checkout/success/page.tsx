@@ -6,7 +6,7 @@ import { DutyDocsLogo } from "@/components/DutyDocsLogo";
 
 export default function CheckoutSuccessPage() {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: "var(--color-bg-primary)" }}>
+        <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: "transparent" }}>
             <div className="max-w-md w-full text-center space-y-8 stagger-item">
                 <div className="flex justify-center mb-4">
                     <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">

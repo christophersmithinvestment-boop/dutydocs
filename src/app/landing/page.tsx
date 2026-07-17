@@ -71,7 +71,7 @@ export default function LandingPage() {
     const { isPro, upgrade } = useSubscription();
 
     return (
-        <div style={{ background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}>
+        <div style={{ background: "transparent", color: "var(--color-text-primary)" }}>
             {/* ─── Navbar ──────────────────────────────────────────────── */}
             <nav
                 style={{
@@ -83,7 +83,7 @@ export default function LandingPage() {
                 <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }} className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-2.5">
                         <DutyDocsLogo size={36} />
-                        <span className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>DutyDocs</span>
+                        <span className="text-lg font-bold hidden sm:inline" style={{ color: "var(--color-text-primary)" }}>DutyDocs</span>
                     </div>
                     <div className="flex items-center gap-3">
                         {user ? (
@@ -107,12 +107,17 @@ export default function LandingPage() {
                 {/* Gradient orbs */}
                 <div style={{
                     position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)",
-                    width: 800, height: 600, background: "radial-gradient(ellipse, rgba(20,184,166,0.12) 0%, transparent 70%)",
+                    width: 900, height: 700, background: "radial-gradient(ellipse, rgba(20,184,166,0.16) 0%, transparent 70%)",
                     pointerEvents: "none",
                 }} />
                 <div style={{
                     position: "absolute", top: 100, right: -200,
-                    width: 400, height: 400, background: "radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)",
+                    width: 500, height: 500, background: "radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%)",
+                    pointerEvents: "none",
+                }} />
+                <div style={{
+                    position: "absolute", top: 300, left: -150,
+                    width: 400, height: 400, background: "radial-gradient(circle, rgba(251,191,36,0.05) 0%, transparent 70%)",
                     pointerEvents: "none",
                 }} />
 
@@ -164,10 +169,12 @@ export default function LandingPage() {
 
                     {/* Trust bar */}
                     <div className="flex items-center justify-center gap-6 flex-wrap mt-12" style={{ color: "var(--color-text-muted)", fontSize: "0.8125rem" }}>
-                        <span className="flex items-center gap-1.5"><Lock size={14} /> End-to-end encryption</span>
-                        <span className="flex items-center gap-1.5"><Shield size={14} /> UK GDPR compliant</span>
+                        <span className="flex items-center gap-1.5"><Lock size={14} /> Encrypted in transit &amp; at rest</span>
+                        <span className="flex items-center gap-1.5"><Shield size={14} /> Built for UK GDPR</span>
                         <span className="flex items-center gap-1.5"><Zap size={14} /> Works offline (PWA)</span>
                     </div>
+
+                    <div className="hazard-stripe" style={{ maxWidth: 220, margin: "2.5rem auto 0" }} />
                 </div>
             </section>
 
@@ -329,20 +336,22 @@ export default function LandingPage() {
             {/* ─── Trusted By / About Us ──────────────────────────────── */}
             <section style={{ padding: "5rem 1.5rem", background: "var(--color-bg-secondary)" }}>
                 <div style={{ maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
-                    <p className="section-header" style={{ color: "#a855f7", letterSpacing: "0.12em", marginBottom: "1rem" }}>ABOUT US & TRUSTED PARTNERS</p>
+                    <p className="section-header" style={{ color: "#a855f7", letterSpacing: "0.12em", marginBottom: "1rem", justifyContent: "center" }}>WHY DUTYDOCS</p>
                     <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "2rem" }}>
-                        Trusted by industry leaders
+                        Built by safety professionals,
+                        <br />for safety professionals
                     </h2>
                     <p style={{ color: "var(--color-text-secondary)", maxWidth: 700, margin: "0 auto 4rem", fontSize: "1.0625rem", lineHeight: 1.6 }}>
-                        DutyDocs was built by safety professionals, for safety professionals. Our mission is to eliminate paperwork, reduce risk, and make compliance effortless across every industry. We partner with top security, construction, and property management firms to deliver real-time accountability.
+                        DutyDocs was born on real sites, not in a boardroom — built to eliminate paperwork,
+                        reduce risk, and make compliance effortless whether you manage one site or fifty.
+                        Your records stay yours: export everything, any time, no lock-in.
                     </p>
-                    
-                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                        {/* Placeholder Logos */}
-                        <div className="text-xl font-bold font-serif">Acme Corp</div>
-                        <div className="text-xl font-bold font-sans tracking-widest">GLOBALTECH</div>
-                        <div className="text-xl font-bold italic">SafeBuild Ltd</div>
-                        <div className="text-xl font-bold font-mono">SECURE+</div>
+
+                    <div className="flex flex-wrap justify-center items-center gap-3 md:gap-4">
+                        <span className="badge badge-green" style={{ padding: "0.5rem 1rem" }}>Free plan — no credit card</span>
+                        <span className="badge badge-blue" style={{ padding: "0.5rem 1rem" }}>Export everything, any time</span>
+                        <span className="badge badge-yellow" style={{ padding: "0.5rem 1rem" }}>Works offline on site</span>
+                        <span className="badge badge-purple" style={{ padding: "0.5rem 1rem" }}>Cancel anytime</span>
                     </div>
                 </div>
             </section>
@@ -359,7 +368,7 @@ export default function LandingPage() {
                         Ready to Transform Your Safety Management?
                     </h2>
                     <p style={{ color: "var(--color-text-secondary)", maxWidth: 500, margin: "0 auto 2rem", fontSize: "1.0625rem" }}>
-                        Join thousands of safety professionals who trust DutyDocs to keep their teams safe and their paperwork sorted.
+                        Get set up in minutes, log your first record today, and keep your paperwork sorted for good. Free to start — no credit card required.
                     </p>
                     {user ? (
                         <Link href="/dashboard" className="btn btn-primary" style={{ padding: "0.875rem 2.5rem", fontSize: "1rem" }}>
@@ -387,8 +396,8 @@ export default function LandingPage() {
                         © {new Date().getFullYear()} DutyDocs. All rights reserved.
                     </p>
                     <div className="flex items-center gap-4" style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
-                        <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Privacy</a>
-                        <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Terms</a>
+                        <Link href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>Privacy</Link>
+                        <Link href="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms</Link>
                         <Link href="/contact" style={{ color: "inherit", textDecoration: "none" }}>Contact</Link>
                     </div>
                 </div>

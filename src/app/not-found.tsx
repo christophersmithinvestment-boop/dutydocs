@@ -6,7 +6,7 @@ import { DutyDocsLogo } from "@/components/DutyDocsLogo";
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-dvh flex flex-col" style={{ background: "var(--color-bg-primary)", color: "var(--color-text-primary)" }}>
+    <div className="min-h-dvh flex flex-col" style={{ background: "transparent", color: "var(--color-text-primary)" }}>
       <nav style={{ padding: "1.5rem", borderBottom: "1px solid var(--color-border)" }}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">

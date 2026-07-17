@@ -25,10 +25,11 @@ export function BottomNav() {
         <nav
             className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
             style={{
-                background: "rgba(10, 14, 26, 0.92)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                borderTop: "1px solid var(--color-border)",
+                background: "rgba(7, 11, 20, 0.85)",
+                backdropFilter: "blur(24px) saturate(1.4)",
+                WebkitBackdropFilter: "blur(24px) saturate(1.4)",
+                borderTop: "1px solid rgba(43, 58, 92, 0.5)",
+                boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.4)",
                 paddingBottom: "env(safe-area-inset-bottom, 0px)",
             }}
         >
@@ -45,11 +46,14 @@ export function BottomNav() {
                             className="flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200"
                             style={{
                                 color: isActive
-                                    ? "var(--color-accent)"
+                                    ? "var(--color-accent-light)"
                                     : "var(--color-text-muted)",
                                 background: isActive
-                                    ? "var(--color-accent-subtle)"
+                                    ? "linear-gradient(180deg, rgba(20,184,166,0.2), rgba(20,184,166,0.06))"
                                     : "transparent",
+                                boxShadow: isActive
+                                    ? "inset 0 1px 0 rgba(255,255,255,0.08), 0 0 16px -4px rgba(20,184,166,0.4)"
+                                    : "none",
                                 minWidth: "60px",
                             }}
                         >

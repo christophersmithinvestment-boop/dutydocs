@@ -89,21 +89,27 @@ export function Sidebar({ className }: { className?: string }) {
                 className
             )}
             style={{
-                background: "var(--color-bg-secondary)",
+                background: "linear-gradient(180deg, rgba(20,184,166,0.04), transparent 220px), var(--color-bg-secondary)",
                 borderColor: "var(--color-border)",
             }}
         >
             {/* Logo */}
-            <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: "var(--color-border)" }}>
-                <DutyDocsLogo size={36} />
-                <div>
-                    <h1 className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>
-                        DutyDocs
-                    </h1>
-                    <p className="text-[10px] font-medium" style={{ color: "var(--color-text-muted)" }}>
-                        H&S Management
-                    </p>
+            <div className="border-b" style={{ borderColor: "var(--color-border)" }}>
+                <div className="flex items-center gap-3 px-5 py-5">
+                    <div className="relative">
+                        <div className="absolute inset-0 rounded-full blur-lg" style={{ background: "rgba(20,184,166,0.35)" }} />
+                        <DutyDocsLogo size={36} />
+                    </div>
+                    <div>
+                        <h1 className="text-[15px] font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+                            DutyDocs
+                        </h1>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-accent)" }}>
+                            H&S Management
+                        </p>
+                    </div>
                 </div>
+                <div className="hazard-stripe mx-5 mb-4" style={{ height: 3 }} />
             </div>
 
             {/* Navigation */}
@@ -130,16 +136,25 @@ export function Sidebar({ className }: { className?: string }) {
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group"
+                                        className="relative flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group hover:bg-white/[0.03]"
                                         style={{
                                             color: isActive
-                                                ? "var(--color-accent)"
+                                                ? "var(--color-accent-light)"
                                                 : "var(--color-text-secondary)",
                                             background: isActive
-                                                ? "var(--color-accent-subtle)"
-                                                : "transparent",
+                                                ? "linear-gradient(90deg, rgba(20,184,166,0.16), rgba(20,184,166,0.04))"
+                                                : undefined,
+                                            boxShadow: isActive
+                                                ? "inset 0 1px 0 rgba(255,255,255,0.04), 0 0 20px -6px rgba(20,184,166,0.25)"
+                                                : undefined,
                                         }}
                                     >
+                                        {isActive && (
+                                            <span
+                                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full"
+                                                style={{ background: "var(--color-accent)", boxShadow: "0 0 8px rgba(20,184,166,0.8)" }}
+                                            />
+                                        )}
                                         <div className="flex items-center gap-3">
                                             <item.icon size={18} strokeWidth={isActive ? 2.2 : 1.6} />
                                             <span>{item.label}</span>
@@ -162,11 +177,12 @@ export function Sidebar({ className }: { className?: string }) {
                         className="px-4 py-4 rounded-xl relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                         onClick={() => setShowUpgradeModal(true)}
                         style={{
-                            background: "linear-gradient(135deg, var(--color-accent) 0%, #0d9488 100%)",
-                            boxShadow: "0 10px 15px -3px rgba(20, 184, 166, 0.2)",
+                            background: "linear-gradient(135deg, #14b8a6 0%, #0d9488 60%, #0f766e 100%)",
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 10px 25px -5px rgba(20, 184, 166, 0.35)",
                         }}
                     >
-                        <div className="relative z-10">
+                        <div className="hazard-stripe absolute top-0 left-0 right-0 rounded-none" style={{ height: 4, opacity: 1 }} />
+                        <div className="relative z-10 pt-1">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                                     <Crown size={12} className="text-white" />

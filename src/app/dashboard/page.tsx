@@ -185,17 +185,32 @@ export default function DashboardPage() {
           <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text-muted)" }}>
             Welcome back 👋
           </p>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>
-            Dashboard
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+            Safety Dashboard
           </h1>
+          <div className="hazard-stripe mt-3 w-24" style={{ height: 3 }} />
         </div>
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-3">
           <div className="flex flex-col items-end">
-            <span className="text-xs font-bold" style={{ color: "var(--color-text-primary)" }}>Compliance Score</span>
-            <span className="text-xl font-black text-[var(--color-safety-green)]">{stats.complianceScore}%</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>Compliance Score</span>
+            <span className="text-2xl font-black tracking-tight" style={{ color: stats.complianceScore > 80 ? "var(--color-safety-green)" : "var(--color-safety-yellow)" }}>{stats.complianceScore}%</span>
           </div>
-          <div className="w-12 h-12 rounded-full border-4 flex items-center justify-center" style={{ borderColor: stats.complianceScore > 80 ? "var(--color-safety-green)" : "var(--color-safety-yellow)", background: stats.complianceScore > 80 ? "rgba(34,197,94,0.1)" : "rgba(234,179,8,0.1)" }}>
-            <TrendingUp size={20} style={{ color: stats.complianceScore > 80 ? "var(--color-safety-green)" : "var(--color-safety-yellow)" }} />
+          <div className="relative w-16 h-16">
+            <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90">
+              <circle cx="32" cy="32" r="27" fill="none" stroke="var(--color-border)" strokeWidth="5" />
+              <circle
+                cx="32" cy="32" r="27" fill="none"
+                stroke={stats.complianceScore > 80 ? "var(--color-safety-green)" : "var(--color-safety-yellow)"}
+                strokeWidth="5" strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 27}
+                strokeDashoffset={(2 * Math.PI * 27) * (1 - stats.complianceScore / 100)}
+                className="gauge-ring"
+                style={{ filter: "drop-shadow(0 0 6px rgba(16,185,129,0.5))" }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <TrendingUp size={18} style={{ color: stats.complianceScore > 80 ? "var(--color-safety-green)" : "var(--color-safety-yellow)" }} />
+            </div>
           </div>
         </div>
       </div>
@@ -207,8 +222,8 @@ export default function DashboardPage() {
           {kpis.map((kpi, i) => (
             <div
               key={kpi.label}
-              className="card stagger-item hover:scale-[1.02] transition-transform cursor-default"
-              style={{ animationDelay: `${i * 60}ms`, border: "1px solid var(--color-border-light)" }}
+              className="card card-rail stagger-item cursor-default"
+              style={{ animationDelay: `${i * 60}ms`, "--rail-color": kpi.color } as React.CSSProperties}
             >
               <div className="flex items-center justify-between mb-3">
                 <div

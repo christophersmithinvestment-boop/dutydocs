@@ -1,4 +1,8 @@
-const CACHE_NAME = "dutydocs-v1";
+const CACHE_NAME = "dutydocs-v2";
+
+// Dev-mode chunk URLs are stable but their content changes constantly,
+// so caching on localhost serves stale code after every edit.
+const IS_DEV = self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
 
 // Core app shell to pre-cache
 const APP_SHELL = [
@@ -49,6 +53,9 @@ self.addEventListener("activate", (event) => {
 // Fetch — network-first for navigation, cache-first for assets
 self.addEventListener("fetch", (event) => {
     const { request } = event;
+
+    // Never intercept in dev — always hit the dev server
+    if (IS_DEV) return;
 
     // Skip non-GET requests
     if (request.method !== "GET") return;
