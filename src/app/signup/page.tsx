@@ -253,11 +253,18 @@ export default function SignupPage() {
                         />
                     </div>
 
+                    <p className="text-xs text-center" style={{ color: "var(--color-text-muted)" }}>
+                        By signing up you agree to our{" "}
+                        <Link href="/terms" style={{ color: "var(--color-accent)" }}>Terms of Service</Link>
+                        {" "}and{" "}
+                        <Link href="/privacy" style={{ color: "var(--color-accent)" }}>Privacy Policy</Link>.
+                    </p>
+
                     <button
                         type="submit"
                         disabled={loading}
                         className="btn btn-primary btn-full"
-                        style={{ marginTop: "1.5rem" }}
+                        style={{ marginTop: "0.5rem" }}
                     >
                         {loading ? "Creating account..." : "Create Account"}
                         {!loading && <ArrowRight size={16} />}
