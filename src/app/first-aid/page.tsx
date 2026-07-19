@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, HeartPulse, ArrowLeft, Trash2, FileDown } from "lucide-react";
+import { Plus, HeartPulse, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDateTime } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -42,6 +42,7 @@ export default function FirstAidPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<FirstAidEntry & { title: string }>({
@@ -50,14 +51,35 @@ export default function FirstAidPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         dateTime: "", patientName: "", location: "", injuryIllness: "",
         treatmentGiven: "", administeredBy: "", outcome: "returned_to_work" as FirstAidEntry["outcome"],
         followUp: "",
     });
 
+    const resetForm = () => {
+        setForm({ dateTime: "", patientName: "", location: "", injuryIllness: "", treatmentGiven: "", administeredBy: "", outcome: "returned_to_work", followUp: "" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.patientName.trim()) return;
+
+        if (editingId) {
+            const updatedItem: FirstAidEntry & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.patientName,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Entry updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: FirstAidEntry & { title: string } = {
             id: generateId(),
             ...form,
@@ -67,7 +89,17 @@ export default function FirstAidPage() {
         addItem(newItem);
         showToast("First Aid entry saved successfully");
         setShowForm(false);
-        setForm({ dateTime: "", patientName: "", location: "", injuryIllness: "", treatmentGiven: "", administeredBy: "", outcome: "returned_to_work", followUp: "" });
+        resetForm();
+    };
+
+    const handleEdit = (item: FirstAidEntry & { title: string }) => {
+        setForm({
+            dateTime: item.dateTime, patientName: item.patientName, location: item.location,
+            injuryIllness: item.injuryIllness, treatmentGiven: item.treatmentGiven,
+            administeredBy: item.administeredBy, outcome: item.outcome, followUp: item.followUp,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -105,8 +137,8 @@ export default function FirstAidPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
-                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>First Aid Entry</h1>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
+                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>{editingId ? "Edit First Aid Entry" : "First Aid Entry"}</h1>
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div><label className="input-label">Date & Time</label><input type="datetime-local" className="input-field" value={form.dateTime} onChange={(e) => setForm({ ...form, dateTime: e.target.value })} /></div>
@@ -130,7 +162,7 @@ export default function FirstAidPage() {
                         </select>
                     </div>
                     <div><label className="input-label">Follow-Up Required</label><textarea className="input-field" placeholder="Any follow-up actions needed?" value={form.followUp} onChange={(e) => setForm({ ...form, followUp: e.target.value })} /></div>
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Save Entry</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Save Entry"}</button>
                 </div>
             </div>
         );
@@ -191,8 +223,9 @@ export default function FirstAidPage() {
                                         </div>
                                         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.injuryIllness && `${item.injuryIllness} · `}{formatDate(item.createdAt)}</p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit"><Pencil size={16} /></button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete"><Trash2 size={16} /></button>
                                 </div>
                             </div>
                         ))}

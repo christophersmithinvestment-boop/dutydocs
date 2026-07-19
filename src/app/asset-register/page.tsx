@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Package, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-react";
+import { Plus, Package, ArrowLeft, Trash2, AlertCircle, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -52,6 +52,7 @@ export default function AssetRegisterPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<AssetRecord & { title: string }>({
@@ -60,10 +61,31 @@ export default function AssetRegisterPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({ ...emptyForm });
+
+    const resetForm = () => {
+        setForm({ ...emptyForm });
+        setEditingId(null);
+    };
 
     const handleSave = () => {
         if (!form.assetName.trim() || !form.assetType) return;
+
+        if (editingId) {
+            const updatedItem: AssetRecord & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.assetName,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Asset updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: AssetRecord & { title: string } = {
             id: generateId(),
             ...form,
@@ -73,7 +95,19 @@ export default function AssetRegisterPage() {
         addItem(newItem);
         showToast("Asset registered successfully");
         setShowForm(false);
-        setForm({ ...emptyForm });
+        resetForm();
+    };
+
+    const handleEdit = (item: AssetRecord & { title: string }) => {
+        setForm({
+            assetName: item.assetName, assetType: item.assetType, location: item.location,
+            manufacturer: item.manufacturer, model: item.model, serialNumber: item.serialNumber,
+            purchaseDate: item.purchaseDate, lastInspectionDate: item.lastInspectionDate,
+            nextInspectionDue: item.nextInspectionDue, condition: item.condition,
+            assignedTo: item.assignedTo, notes: item.notes,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -134,11 +168,11 @@ export default function AssetRegisterPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    Register Asset
+                    {editingId ? "Edit Asset" : "Register Asset"}
                 </h1>
                 <div className="space-y-4">
                     <div>
@@ -205,7 +239,7 @@ export default function AssetRegisterPage() {
                         <label className="input-label">Notes</label>
                         <textarea className="input-field" placeholder="Any additional notes..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                     </div>
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Register Asset</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Register Asset"}</button>
                 </div>
             </div>
         );
@@ -275,10 +309,13 @@ export default function AssetRegisterPage() {
                                             {item.nextInspectionDue && ` · Due: ${formatDate(item.nextInspectionDue)}`}
                                         </p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                        <Pencil size={16} />
+                                    </button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                         <FileDown size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>

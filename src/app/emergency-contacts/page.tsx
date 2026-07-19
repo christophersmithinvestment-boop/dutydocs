@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Phone, ArrowLeft, Trash2, PhoneCall } from "lucide-react";
+import { Plus, Phone, ArrowLeft, Trash2, PhoneCall, Pencil } from "lucide-react";
 import { generateId } from "@/lib/utils";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
@@ -46,6 +46,7 @@ export default function EmergencyContactsPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<EmergencyContact & { title: string }>({
@@ -54,6 +55,7 @@ export default function EmergencyContactsPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         name: "", role: "", phone: "", alternatePhone: "", category: "", notes: "",
     });
@@ -67,8 +69,28 @@ export default function EmergencyContactsPage() {
         }
     }, [loading, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const resetForm = () => {
+        setForm({ name: "", role: "", phone: "", alternatePhone: "", category: "", notes: "" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.name.trim() || !form.phone.trim()) return;
+
+        if (editingId) {
+            const updatedItem: EmergencyContact & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.name,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Contact updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: EmergencyContact & { title: string } = {
             id: generateId(),
             ...form,
@@ -78,7 +100,16 @@ export default function EmergencyContactsPage() {
         addItem(newItem);
         showToast("Contact saved successfully");
         setShowForm(false);
-        setForm({ name: "", role: "", phone: "", alternatePhone: "", category: "", notes: "" });
+        resetForm();
+    };
+
+    const handleEdit = (item: EmergencyContact & { title: string }) => {
+        setForm({
+            name: item.name, role: item.role, phone: item.phone,
+            alternatePhone: item.alternatePhone, category: item.category, notes: item.notes,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -97,8 +128,8 @@ export default function EmergencyContactsPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
-                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Add Emergency Contact</h1>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
+                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>{editingId ? "Edit Emergency Contact" : "Add Emergency Contact"}</h1>
                 <div className="space-y-4">
                     <div><label className="input-label">Name *</label><input className="input-field" placeholder="Contact name or service" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
                     <div><label className="input-label">Role / Description</label><input className="input-field" placeholder="e.g. Site First Aider" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} /></div>
@@ -113,14 +144,14 @@ export default function EmergencyContactsPage() {
                         <div><label className="input-label">Alternate Number</label><input type="tel" className="input-field" placeholder="Backup number" value={form.alternatePhone} onChange={(e) => setForm({ ...form, alternatePhone: e.target.value })} /></div>
                     </div>
                     <div><label className="input-label">Notes</label><textarea className="input-field" placeholder="Any additional info..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Save Contact</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Save Contact"}</button>
                 </div>
             </div>
         );
     }
 
     // Group by category
-    const grouped = filteredItems.reduce<Record<string, EmergencyContact[]>>((acc, item) => {
+    const grouped = filteredItems.reduce<Record<string, (EmergencyContact & { title: string })[]>>((acc, item) => {
         const cat = item.category || "Other";
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(item);
@@ -188,7 +219,8 @@ export default function EmergencyContactsPage() {
                                                     <a href={`tel:${item.phone}`} className="btn btn-success" style={{ padding: "0.5rem", borderRadius: "50%" }}>
                                                         <PhoneCall size={14} />
                                                     </a>
-                                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={14} /></button>
+                                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit"><Pencil size={14} /></button>
+                                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete"><Trash2 size={14} /></button>
                                                 </div>
                                             </div>
                                         </div>

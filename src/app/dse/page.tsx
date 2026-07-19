@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Monitor, ArrowLeft, Trash2, Check, X, Minus, FileDown } from "lucide-react";
+import { Plus, Monitor, ArrowLeft, Trash2, Check, X, Minus, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -117,6 +117,7 @@ export default function DSEPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<DSEAssessment & { title: string }>({
@@ -125,6 +126,7 @@ export default function DSEPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({ employeeName: "", department: "", workstationLocation: "", assessorName: "", date: "", additionalNotes: "", actionRequired: "" });
     const [categories, setCategories] = useState<DSECategory[]>(() => buildCategories());
     const [expandedCat, setExpandedCat] = useState<string | null>(DEFAULT_CATEGORIES[0]?.name || null);
@@ -153,12 +155,35 @@ export default function DSEPage() {
         );
     };
 
+    const resetForm = () => {
+        setForm({ employeeName: "", department: "", workstationLocation: "", assessorName: "", date: "", additionalNotes: "", actionRequired: "" });
+        setCategories(buildCategories());
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.employeeName.trim()) return;
         const allItems = categories.flatMap((c) => c.items);
         const passed = allItems.filter((i) => i.status === "pass");
         const applicable = allItems.filter((i) => i.status !== "na" && i.status !== "unchecked");
         const score = applicable.length > 0 ? Math.round((passed.length / applicable.length) * 100) : 0;
+
+        if (editingId) {
+            const updatedItem: DSEAssessment & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.employeeName,
+                categories,
+                score,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Assessment updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: DSEAssessment & { title: string } = {
             id: generateId(),
             ...form,
@@ -170,8 +195,18 @@ export default function DSEPage() {
         addItem(newItem);
         showToast("Assessment saved successfully");
         setShowForm(false);
-        setForm({ employeeName: "", department: "", workstationLocation: "", assessorName: "", date: "", additionalNotes: "", actionRequired: "" });
-        setCategories(buildCategories());
+        resetForm();
+    };
+
+    const handleEdit = (item: DSEAssessment & { title: string }) => {
+        setForm({
+            employeeName: item.employeeName, department: item.department,
+            workstationLocation: item.workstationLocation, assessorName: item.assessorName,
+            date: item.date, additionalNotes: item.additionalNotes, actionRequired: item.actionRequired,
+        });
+        setCategories(item.categories);
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -205,8 +240,8 @@ export default function DSEPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
-                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>New DSE Assessment</h1>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
+                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>{editingId ? "Edit DSE Assessment" : "New DSE Assessment"}</h1>
                 <div className="space-y-4">
                     <div>
                         <label className="input-label">Employee Name *</label>
@@ -256,7 +291,7 @@ export default function DSEPage() {
                     <div><label className="input-label">Actions Required</label><textarea className="input-field" placeholder="List any corrective actions needed..." value={form.actionRequired} onChange={(e) => setForm({ ...form, actionRequired: e.target.value })} /></div>
                     <div><label className="input-label">Additional Notes</label><textarea className="input-field" placeholder="Any other observations..." value={form.additionalNotes} onChange={(e) => setForm({ ...form, additionalNotes: e.target.value })} /></div>
 
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Save DSE Assessment</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Save DSE Assessment"}</button>
                 </div>
             </div>
         );
@@ -312,8 +347,9 @@ export default function DSEPage() {
                                         <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.employeeName}</p>
                                         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.workstationLocation && `${item.workstationLocation} · `}{formatDate(item.createdAt)}</p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit"><Pencil size={16} /></button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete"><Trash2 size={16} /></button>
                                 </div>
                             </div>
                         ))}

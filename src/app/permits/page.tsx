@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ShieldCheck, ArrowLeft, Trash2, FileDown } from "lucide-react";
+import { Plus, ShieldCheck, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -58,6 +58,7 @@ export default function PermitsPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         permitType: "", description: "", location: "", requestedBy: "",
         startDate: "", endDate: "", precautions: "",
@@ -65,8 +66,33 @@ export default function PermitsPage() {
         authorisedBy: "", status: "draft" as Permit["status"],
     });
 
+    const resetForm = () => {
+        setForm({
+            permitType: "", description: "", location: "", requestedBy: "",
+            startDate: "", endDate: "", precautions: "",
+            isolationRequired: false, gasTestRequired: false, rescuePlanInPlace: false,
+            authorisedBy: "", status: "draft",
+        });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.permitType || !form.description.trim()) return;
+
+        if (editingId) {
+            const updatedItem: Permit & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.permitType,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Permit updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: Permit & { title: string } = {
             id: generateId(),
             ...form,
@@ -76,12 +102,19 @@ export default function PermitsPage() {
         addItem(newItem);
         showToast("Permit created successfully");
         setShowForm(false);
+        resetForm();
+    };
+
+    const handleEdit = (item: Permit & { title: string }) => {
         setForm({
-            permitType: "", description: "", location: "", requestedBy: "",
-            startDate: "", endDate: "", precautions: "",
-            isolationRequired: false, gasTestRequired: false, rescuePlanInPlace: false,
-            authorisedBy: "", status: "draft",
+            permitType: item.permitType, description: item.description, location: item.location,
+            requestedBy: item.requestedBy, startDate: item.startDate, endDate: item.endDate,
+            precautions: item.precautions, isolationRequired: item.isolationRequired,
+            gasTestRequired: item.gasTestRequired, rescuePlanInPlace: item.rescuePlanInPlace,
+            authorisedBy: item.authorisedBy, status: item.status,
         });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -141,11 +174,11 @@ export default function PermitsPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    New Permit to Work
+                    {editingId ? "Edit Permit to Work" : "New Permit to Work"}
                 </h1>
 
                 <div className="space-y-4">
@@ -211,7 +244,7 @@ export default function PermitsPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Create Permit
+                        {editingId ? "Save Changes" : "Create Permit"}
                     </button>
                 </div>
             </div>
@@ -290,10 +323,13 @@ export default function PermitsPage() {
                                                 → {nextStatus(item.status)?.toUpperCase()}
                                             </button>
                                         )}
+                                        <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                            <Pencil size={14} />
+                                        </button>
                                         <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                             <FileDown size={16} />
                                         </button>
-                                        <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", color: "var(--color-safety-red)" }}>
+                                        <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                             <Trash2 size={12} />
                                         </button>
                                     </div>

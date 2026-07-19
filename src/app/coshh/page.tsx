@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FlaskConical, ArrowLeft, Trash2, FileDown } from "lucide-react";
+import { Plus, FlaskConical, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -57,6 +57,7 @@ export default function COSHHPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<COSHHAssessment & { title: string }>({
@@ -66,6 +67,7 @@ export default function COSHHPage() {
     const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         substanceName: "", manufacturer: "", usedFor: "", location: "",
         hazardSymbols: [] as string[], exposureRoutes: [] as string[],
@@ -77,8 +79,31 @@ export default function COSHHPage() {
     const toggleArrayItem = (arr: string[], item: string) =>
         arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item];
 
+    const resetForm = () => {
+        setForm({
+            substanceName: "", manufacturer: "", usedFor: "", location: "",
+            hazardSymbols: [], exposureRoutes: [], healthEffects: "", controlMeasures: "",
+            ppeRequired: [], emergencyProcedures: "", storageRequirements: "", assessor: "", reviewDate: "",
+        });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.substanceName.trim()) return;
+
+        if (editingId) {
+            const updatedItem: COSHHAssessment & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.substanceName,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("COSHH assessment updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
 
         if (isLimitReached(totalRecords)) {
             setShowUpgradeModal(true);
@@ -94,11 +119,21 @@ export default function COSHHPage() {
         addItem(newItem);
         showToast("COSHH assessment saved!");
         setShowForm(false);
+        resetForm();
+    };
+
+    const handleEdit = (item: COSHHAssessment & { title: string }) => {
         setForm({
-            substanceName: "", manufacturer: "", usedFor: "", location: "",
-            hazardSymbols: [], exposureRoutes: [], healthEffects: "", controlMeasures: "",
-            ppeRequired: [], emergencyProcedures: "", storageRequirements: "", assessor: "", reviewDate: "",
+            substanceName: item.substanceName, manufacturer: item.manufacturer,
+            usedFor: item.usedFor, location: item.location,
+            hazardSymbols: item.hazardSymbols, exposureRoutes: item.exposureRoutes,
+            healthEffects: item.healthEffects, controlMeasures: item.controlMeasures,
+            ppeRequired: item.ppeRequired, emergencyProcedures: item.emergencyProcedures,
+            storageRequirements: item.storageRequirements, assessor: item.assessor,
+            reviewDate: item.reviewDate,
         });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -134,11 +169,11 @@ export default function COSHHPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    New COSHH Assessment
+                    {editingId ? "Edit COSHH Assessment" : "New COSHH Assessment"}
                 </h1>
 
                 <div className="space-y-4">
@@ -257,7 +292,7 @@ export default function COSHHPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Save COSHH Assessment
+                        {editingId ? "Save Changes" : "Save COSHH Assessment"}
                     </button>
                 </div>
             </div>
@@ -331,10 +366,13 @@ export default function COSHHPage() {
                                         </div>
                                     )}
                                 </div>
+                                <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                    <Pencil size={16} />
+                                </button>
                                 <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                     <FileDown size={16} />
                                 </button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                     <Trash2 size={16} />
                                 </button>
                             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Search, ArrowLeft, Trash2, Check, X, Minus, FileDown, Camera, Image, X as XIcon } from "lucide-react";
+import { Plus, Search, ArrowLeft, Trash2, Check, X, Minus, FileDown, Camera, Image, X as XIcon, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -83,6 +83,7 @@ export default function InspectionsPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<Inspection & { title: string }>({
@@ -91,6 +92,7 @@ export default function InspectionsPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({ siteName: "", inspectorName: "", date: "", overallNotes: "" });
     const [categories, setCategories] = useState<InspectionCategory[]>(() => buildCategories());
     const [expandedCat, setExpandedCat] = useState<string | null>(DEFAULT_CATEGORIES[0]?.name || null);
@@ -167,6 +169,13 @@ export default function InspectionsPage() {
         );
     };
 
+    const resetForm = () => {
+        setForm({ siteName: "", inspectorName: "", date: "", overallNotes: "" });
+        setCategories(buildCategories());
+        setPhotos([]);
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.siteName.trim()) return;
         const allItems = categories.flatMap((c) => c.items);
@@ -174,6 +183,25 @@ export default function InspectionsPage() {
         const passed = allItems.filter((i) => i.status === "pass");
         const applicableItems = allItems.filter((i) => i.status !== "na" && i.status !== "unchecked");
         const score = applicableItems.length > 0 ? Math.round((passed.length / applicableItems.length) * 100) : 0;
+
+        if (editingId) {
+            const updatedItem: Inspection & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.siteName,
+                categories,
+                photos,
+                score,
+                totalChecked: checked.length,
+                totalPassed: passed.length,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Inspection updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
 
         const newItem: Inspection & { title: string } = {
             id: generateId(),
@@ -189,9 +217,18 @@ export default function InspectionsPage() {
         addItem(newItem);
         showToast("Inspection saved successfully");
         setShowForm(false);
-        setForm({ siteName: "", inspectorName: "", date: "", overallNotes: "" });
-        setCategories(buildCategories());
-        setPhotos([]);
+        resetForm();
+    };
+
+    const handleEdit = (item: Inspection & { title: string }) => {
+        setForm({
+            siteName: item.siteName, inspectorName: item.inspectorName,
+            date: item.date, overallNotes: item.overallNotes,
+        });
+        setCategories(item.categories);
+        setPhotos(item.photos);
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -241,11 +278,11 @@ export default function InspectionsPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    New Site Inspection
+                    {editingId ? "Edit Site Inspection" : "New Site Inspection"}
                 </h1>
 
                 <div className="space-y-4">
@@ -383,7 +420,7 @@ export default function InspectionsPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Save Inspection
+                        {editingId ? "Save Changes" : "Save Inspection"}
                     </button>
                 </div>
             </div>
@@ -453,10 +490,13 @@ export default function InspectionsPage() {
                                             {item.photos?.length > 0 && ` · 📷 ${item.photos.length} photo${item.photos.length !== 1 ? "s" : ""}`}
                                         </p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                        <Pencil size={16} />
+                                    </button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                         <FileDown size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, HardHat, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-react";
+import { Plus, HardHat, ArrowLeft, Trash2, AlertCircle, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate, getExpiryStatus, getExpiryBadgeClass } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -45,6 +45,7 @@ export default function PPERegisterPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<PPERecord & { title: string }>({
@@ -53,14 +54,35 @@ export default function PPERegisterPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         employeeName: "", department: "", ppeType: "", manufacturer: "", serialNumber: "",
         dateIssued: "", expiryDate: "", condition: "good" as PPERecord["condition"],
         lastInspected: "", notes: "",
     });
 
+    const resetForm = () => {
+        setForm({ employeeName: "", department: "", ppeType: "", manufacturer: "", serialNumber: "", dateIssued: "", expiryDate: "", condition: "good", lastInspected: "", notes: "" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.employeeName.trim() || !form.ppeType) return;
+
+        if (editingId) {
+            const updatedItem: PPERecord & { title: string } = {
+                id: editingId,
+                ...form,
+                title: `${form.employeeName} - ${form.ppeType}`,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("PPE item updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: PPERecord & { title: string } = {
             id: generateId(),
             ...form,
@@ -70,7 +92,18 @@ export default function PPERegisterPage() {
         addItem(newItem);
         showToast("PPE item registered successfully");
         setShowForm(false);
-        setForm({ employeeName: "", department: "", ppeType: "", manufacturer: "", serialNumber: "", dateIssued: "", expiryDate: "", condition: "good", lastInspected: "", notes: "" });
+        resetForm();
+    };
+
+    const handleEdit = (item: PPERecord & { title: string }) => {
+        setForm({
+            employeeName: item.employeeName, department: item.department, ppeType: item.ppeType,
+            manufacturer: item.manufacturer, serialNumber: item.serialNumber,
+            dateIssued: item.dateIssued, expiryDate: item.expiryDate, condition: item.condition,
+            lastInspected: item.lastInspected, notes: item.notes,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -112,8 +145,8 @@ export default function PPERegisterPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
-                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Register PPE Item</h1>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
+                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>{editingId ? "Edit PPE Item" : "Register PPE Item"}</h1>
                 <div className="space-y-4">
                     <div><label className="input-label">Employee Name *</label><input className="input-field" placeholder="Who is this PPE issued to?" value={form.employeeName} onChange={(e) => setForm({ ...form, employeeName: e.target.value })} /></div>
                     <div className="grid grid-cols-2 gap-3">
@@ -142,7 +175,7 @@ export default function PPERegisterPage() {
                     </div>
                     <div><label className="input-label">Last Inspected</label><input type="date" className="input-field" value={form.lastInspected} onChange={(e) => setForm({ ...form, lastInspected: e.target.value })} /></div>
                     <div><label className="input-label">Notes</label><textarea className="input-field" placeholder="Any additional notes..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Register PPE</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Register PPE"}</button>
                 </div>
             </div>
         );
@@ -229,8 +262,9 @@ export default function PPERegisterPage() {
                                             {item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
                                         </p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit"><Pencil size={16} /></button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete"><Trash2 size={16} /></button>
                                 </div>
                             </div>
                         ))}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Megaphone, ArrowLeft, Trash2, Users, FileDown, X as LucideX } from "lucide-react";
+import { Plus, Megaphone, ArrowLeft, Trash2, Users, FileDown, X as LucideX, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -39,6 +39,7 @@ export default function ToolboxTalksPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<ToolboxTalk & { title: string }>({
@@ -47,6 +48,7 @@ export default function ToolboxTalksPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [newAttendee, setNewAttendee] = useState("");
     const [form, setForm] = useState({
         topic: "", presenter: "", date: "", keyPoints: "",
@@ -63,8 +65,28 @@ export default function ToolboxTalksPage() {
         setForm({ ...form, attendees: form.attendees.filter((_, i) => i !== idx) });
     };
 
+    const resetForm = () => {
+        setForm({ topic: "", presenter: "", date: "", keyPoints: "", attendees: [], duration: "" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.topic.trim()) return;
+
+        if (editingId) {
+            const updatedItem: ToolboxTalk & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.topic,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Toolbox talk updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: ToolboxTalk & { title: string } = {
             id: generateId(),
             ...form,
@@ -74,7 +96,16 @@ export default function ToolboxTalksPage() {
         addItem(newItem);
         showToast("Toolbox talk recorded successfully");
         setShowForm(false);
-        setForm({ topic: "", presenter: "", date: "", keyPoints: "", attendees: [], duration: "" });
+        resetForm();
+    };
+
+    const handleEdit = (item: ToolboxTalk & { title: string }) => {
+        setForm({
+            topic: item.topic, presenter: item.presenter, date: item.date,
+            keyPoints: item.keyPoints, attendees: item.attendees, duration: item.duration,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -107,11 +138,11 @@ export default function ToolboxTalksPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    Record Toolbox Talk
+                    {editingId ? "Edit Toolbox Talk" : "Record Toolbox Talk"}
                 </h1>
 
                 <div className="space-y-4">
@@ -196,7 +227,7 @@ export default function ToolboxTalksPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Save Toolbox Talk
+                        {editingId ? "Save Changes" : "Save Toolbox Talk"}
                     </button>
                 </div>
             </div>
@@ -264,10 +295,13 @@ export default function ToolboxTalksPage() {
                                             )}
                                         </div>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                        <Pencil size={16} />
+                                    </button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                         <FileDown size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>

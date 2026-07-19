@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileText, ArrowLeft, Trash2, ChevronDown, ChevronUp, FileDown } from "lucide-react";
+import { Plus, FileText, ArrowLeft, Trash2, ChevronDown, ChevronUp, FileDown, Pencil } from "lucide-react";
 import { generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -56,12 +56,14 @@ export default function RAMSPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<RAMS & { title: string }>({ module: "rams", storeKey: "rams" });
     const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [steps, setSteps] = useState<RAMSStep[]>([
         { id: "1", description: "", hazards: "", controls: "", responsiblePerson: "" },
     ]);
@@ -94,15 +96,41 @@ export default function RAMSPage() {
         setSteps(steps.filter((s) => s.id !== id));
     };
 
+    const resetForm = () => {
+        setSteps([{ id: "1", description: "", hazards: "", controls: "", responsiblePerson: "" }]);
+        setForm({
+            taskTitle: "", projectName: "", location: "", assessor: "",
+            taskDescription: "", ppeRequired: [], plantEquipment: "",
+            overallLikelihood: 3, overallSeverity: 3, emergencyProcedures: "", reviewDate: "",
+        });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.taskTitle.trim()) return;
+        const riskLevel = calculateRiskLevel(form.overallLikelihood, form.overallSeverity);
+
+        if (editingId) {
+            const updatedItem: RAMS & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.taskTitle,
+                steps,
+                riskLevel,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("RAMS updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
 
         if (isLimitReached(totalRecords)) {
             setShowUpgradeModal(true);
             return;
         }
 
-        const riskLevel = calculateRiskLevel(form.overallLikelihood, form.overallSeverity);
         const newItem: RAMS & { title: string } = {
             id: generateId(),
             ...form,
@@ -114,12 +142,20 @@ export default function RAMSPage() {
         addItem(newItem);
         showToast("RAMS saved successfully!");
         setShowForm(false);
-        setSteps([{ id: "1", description: "", hazards: "", controls: "", responsiblePerson: "" }]);
+        resetForm();
+    };
+
+    const handleEdit = (item: RAMS & { title: string }) => {
         setForm({
-            taskTitle: "", projectName: "", location: "", assessor: "",
-            taskDescription: "", ppeRequired: [], plantEquipment: "",
-            overallLikelihood: 3, overallSeverity: 3, emergencyProcedures: "", reviewDate: "",
+            taskTitle: item.taskTitle, projectName: item.projectName, location: item.location,
+            assessor: item.assessor, taskDescription: item.taskDescription,
+            ppeRequired: item.ppeRequired, plantEquipment: item.plantEquipment,
+            overallLikelihood: item.overallLikelihood, overallSeverity: item.overallSeverity,
+            emergencyProcedures: item.emergencyProcedures, reviewDate: item.reviewDate,
         });
+        setSteps(item.steps);
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -160,11 +196,11 @@ export default function RAMSPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    New RAMS
+                    {editingId ? "Edit RAMS" : "New RAMS"}
                 </h1>
 
                 <div className="space-y-4">
@@ -286,7 +322,7 @@ export default function RAMSPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Save RAMS
+                        {editingId ? "Save Changes" : "Save RAMS"}
                     </button>
                 </div>
             </div>
@@ -357,10 +393,13 @@ export default function RAMSPage() {
                                         {item.steps.length} step{item.steps.length !== 1 ? "s" : ""} · {formatDate(item.createdAt)}
                                     </p>
                                 </div>
+                                <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                    <Pencil size={16} />
+                                </button>
                                 <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                     <FileDown size={16} />
                                 </button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                     <Trash2 size={16} />
                                 </button>
                             </div>

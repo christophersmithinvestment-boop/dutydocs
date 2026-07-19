@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, TriangleAlert, ArrowLeft, Trash2, FileDown } from "lucide-react";
+import { Plus, TriangleAlert, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDateTime } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -41,6 +41,7 @@ export default function NearMissPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<NearMiss & { title: string }>({
@@ -51,14 +52,34 @@ export default function NearMissPage() {
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         description: "", location: "", dateTime: "",
         potentialSeverity: "medium" as NearMiss["potentialSeverity"],
         suggestedAction: "", reportedBy: "", category: "",
     });
 
+    const resetForm = () => {
+        setForm({ description: "", location: "", dateTime: "", potentialSeverity: "medium", suggestedAction: "", reportedBy: "", category: "" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.description.trim()) return;
+
+        if (editingId) {
+            const updatedItem: NearMiss & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.description,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Near miss report updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
 
         if (isLimitReached(totalRecords)) {
             setShowUpgradeModal(true);
@@ -74,7 +95,17 @@ export default function NearMissPage() {
         addItem(newItem);
         showToast("Near miss reported successfully");
         setShowForm(false);
-        setForm({ description: "", location: "", dateTime: "", potentialSeverity: "medium", suggestedAction: "", reportedBy: "", category: "" });
+        resetForm();
+    };
+
+    const handleEdit = (item: NearMiss & { title: string }) => {
+        setForm({
+            description: item.description, location: item.location, dateTime: item.dateTime,
+            potentialSeverity: item.potentialSeverity, suggestedAction: item.suggestedAction,
+            reportedBy: item.reportedBy, category: item.category,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -111,11 +142,11 @@ export default function NearMissPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-2" style={{ color: "var(--color-text-primary)" }}>
-                    Report Near Miss
+                    {editingId ? "Edit Near Miss Report" : "Report Near Miss"}
                 </h1>
                 <p className="text-xs mb-6" style={{ color: "var(--color-text-muted)" }}>
                     Quick capture — report what almost happened
@@ -167,7 +198,7 @@ export default function NearMissPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Submit Near Miss
+                        {editingId ? "Save Changes" : "Submit Near Miss"}
                     </button>
                 </div>
             </div>
@@ -232,10 +263,13 @@ export default function NearMissPage() {
                                         {item.category && `${item.category} · `}{item.location && `${item.location} · `}{formatDate(item.createdAt)}
                                     </p>
                                 </div>
+                                <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                    <Pencil size={16} />
+                                </button>
                                 <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                     <FileDown size={16} />
                                 </button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                     <Trash2 size={16} />
                                 </button>
                             </div>

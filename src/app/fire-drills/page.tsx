@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Flame, ArrowLeft, Trash2, Users, Clock, FileDown } from "lucide-react";
+import { Plus, Flame, ArrowLeft, Trash2, Users, Clock, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -43,6 +43,7 @@ export default function FireDrillPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<FireDrill & { title: string }>({
@@ -51,6 +52,7 @@ export default function FireDrillPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         date: "", time: "", location: "", drillType: "", alarmActivatedBy: "",
         evacuationTime: "", totalEvacuees: "", assemblyPoint: "", allAccountedFor: true,
@@ -58,8 +60,28 @@ export default function FireDrillPage() {
         outcome: "pass" as FireDrill["outcome"],
     });
 
+    const resetForm = () => {
+        setForm({ date: "", time: "", location: "", drillType: "", alarmActivatedBy: "", evacuationTime: "", totalEvacuees: "", assemblyPoint: "", allAccountedFor: true, fireWardens: "", issuesIdentified: "", correctiveActions: "", conductedBy: "", outcome: "pass" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.date || !form.location.trim()) return;
+
+        if (editingId) {
+            const updatedItem: FireDrill & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.location,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Fire drill updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: FireDrill & { title: string } = {
             id: generateId(),
             ...form,
@@ -69,7 +91,20 @@ export default function FireDrillPage() {
         addItem(newItem);
         showToast("Fire drill logged successfully");
         setShowForm(false);
-        setForm({ date: "", time: "", location: "", drillType: "", alarmActivatedBy: "", evacuationTime: "", totalEvacuees: "", assemblyPoint: "", allAccountedFor: true, fireWardens: "", issuesIdentified: "", correctiveActions: "", conductedBy: "", outcome: "pass" });
+        resetForm();
+    };
+
+    const handleEdit = (item: FireDrill & { title: string }) => {
+        setForm({
+            date: item.date, time: item.time, location: item.location, drillType: item.drillType,
+            alarmActivatedBy: item.alarmActivatedBy, evacuationTime: item.evacuationTime,
+            totalEvacuees: item.totalEvacuees, assemblyPoint: item.assemblyPoint,
+            allAccountedFor: item.allAccountedFor, fireWardens: item.fireWardens,
+            issuesIdentified: item.issuesIdentified, correctiveActions: item.correctiveActions,
+            conductedBy: item.conductedBy, outcome: item.outcome,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -112,8 +147,8 @@ export default function FireDrillPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
-                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Log Fire Drill</h1>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
+                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>{editingId ? "Edit Fire Drill" : "Log Fire Drill"}</h1>
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div><label className="input-label">Date *</label><input type="date" className="input-field" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
@@ -159,7 +194,7 @@ export default function FireDrillPage() {
                     <div><label className="input-label">Corrective Actions</label><textarea className="input-field" placeholder="Actions to address issues..." value={form.correctiveActions} onChange={(e) => setForm({ ...form, correctiveActions: e.target.value })} /></div>
                     <div><label className="input-label">Conducted By</label><input className="input-field" placeholder="Your name" value={form.conductedBy} onChange={(e) => setForm({ ...form, conductedBy: e.target.value })} /></div>
 
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Save Fire Drill</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Save Fire Drill"}</button>
                 </div>
             </div>
         );
@@ -224,8 +259,9 @@ export default function FireDrillPage() {
                                             {item.totalEvacuees && <span className="flex items-center gap-0.5"><Users size={10} /> {item.totalEvacuees}</span>}
                                         </p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit"><Pencil size={16} /></button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete"><Trash2 size={16} /></button>
                                 </div>
                             </div>
                         ))}

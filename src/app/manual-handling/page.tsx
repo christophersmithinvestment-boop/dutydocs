@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Dumbbell, ArrowLeft, Trash2, FileDown } from "lucide-react";
+import { Plus, Dumbbell, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -47,6 +47,7 @@ export default function ManualHandlingPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<ManualHandlingAssessment & { title: string }>({
@@ -55,6 +56,7 @@ export default function ManualHandlingPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         taskDescription: "", location: "", assessor: "", loadWeight: "", loadDescription: "",
         frequency: "", distance: "", taskFactors: "", individualFactors: "", loadFactors: "",
@@ -62,10 +64,32 @@ export default function ManualHandlingPage() {
         residualLikelihood: 1, residualSeverity: 1, reviewDate: "",
     });
 
+    const resetForm = () => {
+        setForm({ taskDescription: "", location: "", assessor: "", loadWeight: "", loadDescription: "", frequency: "", distance: "", taskFactors: "", individualFactors: "", loadFactors: "", environmentFactors: "", likelihood: 3, severity: 3, controlMeasures: "", residualLikelihood: 1, residualSeverity: 1, reviewDate: "" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.taskDescription.trim()) return;
         const riskLevel = calculateRiskLevel(form.likelihood, form.severity);
         const residualRiskLevel = calculateRiskLevel(form.residualLikelihood, form.residualSeverity);
+
+        if (editingId) {
+            const updatedItem: ManualHandlingAssessment & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.taskDescription,
+                riskLevel,
+                residualRiskLevel,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Assessment updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: ManualHandlingAssessment & { title: string } = {
             id: generateId(),
             ...form,
@@ -77,7 +101,21 @@ export default function ManualHandlingPage() {
         addItem(newItem);
         showToast("Assessment saved successfully");
         setShowForm(false);
-        setForm({ taskDescription: "", location: "", assessor: "", loadWeight: "", loadDescription: "", frequency: "", distance: "", taskFactors: "", individualFactors: "", loadFactors: "", environmentFactors: "", likelihood: 3, severity: 3, controlMeasures: "", residualLikelihood: 1, residualSeverity: 1, reviewDate: "" });
+        resetForm();
+    };
+
+    const handleEdit = (item: ManualHandlingAssessment & { title: string }) => {
+        setForm({
+            taskDescription: item.taskDescription, location: item.location, assessor: item.assessor,
+            loadWeight: item.loadWeight, loadDescription: item.loadDescription, frequency: item.frequency,
+            distance: item.distance, taskFactors: item.taskFactors, individualFactors: item.individualFactors,
+            loadFactors: item.loadFactors, environmentFactors: item.environmentFactors,
+            likelihood: item.likelihood, severity: item.severity, controlMeasures: item.controlMeasures,
+            residualLikelihood: item.residualLikelihood, residualSeverity: item.residualSeverity,
+            reviewDate: item.reviewDate,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -121,8 +159,8 @@ export default function ManualHandlingPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
-                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Manual Handling Assessment</h1>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
+                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>{editingId ? "Edit Manual Handling Assessment" : "Manual Handling Assessment"}</h1>
                 <div className="space-y-4">
                     <div><label className="input-label">Task Description *</label><textarea className="input-field" placeholder="Describe the manual handling task..." value={form.taskDescription} onChange={(e) => setForm({ ...form, taskDescription: e.target.value })} /></div>
                     <div className="grid grid-cols-2 gap-3">
@@ -196,7 +234,7 @@ export default function ManualHandlingPage() {
                     </div>
 
                     <div><label className="input-label">Review Date</label><input type="date" className="input-field" value={form.reviewDate} onChange={(e) => setForm({ ...form, reviewDate: e.target.value })} /></div>
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Save Assessment</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Save Assessment"}</button>
                 </div>
             </div>
         );
@@ -257,8 +295,9 @@ export default function ManualHandlingPage() {
                                         </div>
                                         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{item.loadWeight && `${item.loadWeight} · `}{item.location && `${item.location} · `}{formatDate(item.createdAt)}</p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit"><Pencil size={16} /></button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete"><Trash2 size={16} /></button>
                                 </div>
                             </div>
                         ))}

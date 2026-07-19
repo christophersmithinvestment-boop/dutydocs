@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, GraduationCap, ArrowLeft, Trash2, AlertCircle, FileDown } from "lucide-react";
+import { Plus, GraduationCap, ArrowLeft, Trash2, AlertCircle, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate, getExpiryStatus, getExpiryBadgeClass } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -47,6 +47,7 @@ export default function TrainingRecordsPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<TrainingRecord & { title: string }>({
@@ -55,14 +56,36 @@ export default function TrainingRecordsPage() {
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         employeeName: "", department: "", courseName: "", courseType: "",
         provider: "", dateCompleted: "", expiryDate: "", certificateRef: "", notes: "",
     });
 
+    const resetForm = () => {
+        setForm({ employeeName: "", department: "", courseName: "", courseType: "", provider: "", dateCompleted: "", expiryDate: "", certificateRef: "", notes: "" });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.employeeName.trim() || !form.courseName.trim()) return;
         const status = getExpiryStatus(form.expiryDate);
+
+        if (editingId) {
+            const updatedItem: TrainingRecord & { title: string } = {
+                id: editingId,
+                ...form,
+                status,
+                title: `${form.employeeName} - ${form.courseName}`,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Training record updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
+
         const newItem: TrainingRecord & { title: string } = {
             id: generateId(),
             ...form,
@@ -73,7 +96,17 @@ export default function TrainingRecordsPage() {
         addItem(newItem);
         showToast("Training record saved successfully");
         setShowForm(false);
-        setForm({ employeeName: "", department: "", courseName: "", courseType: "", provider: "", dateCompleted: "", expiryDate: "", certificateRef: "", notes: "" });
+        resetForm();
+    };
+
+    const handleEdit = (item: TrainingRecord & { title: string }) => {
+        setForm({
+            employeeName: item.employeeName, department: item.department, courseName: item.courseName,
+            courseType: item.courseType, provider: item.provider, dateCompleted: item.dateCompleted,
+            expiryDate: item.expiryDate, certificateRef: item.certificateRef, notes: item.notes,
+        });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -113,8 +146,8 @@ export default function TrainingRecordsPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
-                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Add Training Record</h1>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}><ArrowLeft size={18} /> Back</button>
+                <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>{editingId ? "Edit Training Record" : "Add Training Record"}</h1>
                 <div className="space-y-4">
                     <div><label className="input-label">Employee Name *</label><input className="input-field" placeholder="Full name" value={form.employeeName} onChange={(e) => setForm({ ...form, employeeName: e.target.value })} /></div>
                     <div className="grid grid-cols-2 gap-3">
@@ -134,7 +167,7 @@ export default function TrainingRecordsPage() {
                     </div>
                     <div><label className="input-label">Certificate Reference</label><input className="input-field" placeholder="Certificate number" value={form.certificateRef} onChange={(e) => setForm({ ...form, certificateRef: e.target.value })} /></div>
                     <div><label className="input-label">Notes</label><textarea className="input-field" placeholder="Any additional notes..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">Save Record</button>
+                    <button onClick={handleSave} className="btn btn-primary btn-full mt-4">{editingId ? "Save Changes" : "Save Record"}</button>
                 </div>
             </div>
         );
@@ -215,8 +248,9 @@ export default function TrainingRecordsPage() {
                                             {item.employeeName}{item.expiryDate && ` · Exp: ${formatDate(item.expiryDate)}`}
                                         </p>
                                     </div>
+                                    <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit"><Pencil size={16} /></button>
                                     <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF"><FileDown size={16} /></button>
-                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete"><Trash2 size={16} /></button>
                                 </div>
                             </div>
                         ))}

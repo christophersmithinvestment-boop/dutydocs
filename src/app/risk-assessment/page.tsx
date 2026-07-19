@@ -8,6 +8,7 @@ import {
     ArrowLeft,
     Trash2,
     FileDown,
+    Pencil,
 } from "lucide-react";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -58,12 +59,14 @@ export default function RiskAssessmentPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<RiskAssessment>({ module: "risk_assessments", storeKey: "risk_assessments" });
     const { isPro, isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         title: "",
         location: "",
@@ -80,16 +83,42 @@ export default function RiskAssessmentPage() {
     });
     const { showToast } = useToast();
 
+    const resetForm = () => {
+        setForm({
+            title: "", location: "", assessor: "", hazardDescription: "",
+            whoAtRisk: "", likelihood: 3, severity: 3, controlMeasures: "",
+            residualLikelihood: 1, residualSeverity: 1, responsiblePerson: "", reviewDate: "",
+        });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.title.trim()) return;
+        const riskLevel = calculateRiskLevel(form.likelihood, form.severity);
+        const residualRiskLevel = calculateRiskLevel(form.residualLikelihood, form.residualSeverity);
+
+        if (editingId) {
+            const existing = items.find((i) => i.id === editingId);
+            const updatedItem: RiskAssessment = {
+                id: editingId,
+                ...form,
+                riskLevel,
+                residualRiskLevel,
+                createdAt: existing?.createdAt ?? new Date().toISOString(),
+                status: existing?.status ?? "active",
+            };
+            editItem(editingId, updatedItem);
+            showToast("Risk assessment updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
 
         if (isLimitReached(totalRecords)) {
             setShowUpgradeModal(true);
             return;
         }
 
-        const riskLevel = calculateRiskLevel(form.likelihood, form.severity);
-        const residualRiskLevel = calculateRiskLevel(form.residualLikelihood, form.residualSeverity);
         const newItem: RiskAssessment = {
             id: generateId(),
             ...form,
@@ -101,11 +130,19 @@ export default function RiskAssessmentPage() {
         addItem(newItem);
         showToast("Risk assessment saved successfully!");
         setShowForm(false);
+        resetForm();
+    };
+
+    const handleEdit = (item: RiskAssessment) => {
         setForm({
-            title: "", location: "", assessor: "", hazardDescription: "",
-            whoAtRisk: "", likelihood: 3, severity: 3, controlMeasures: "",
-            residualLikelihood: 1, residualSeverity: 1, responsiblePerson: "", reviewDate: "",
+            title: item.title, location: item.location, assessor: item.assessor,
+            hazardDescription: item.hazardDescription, whoAtRisk: item.whoAtRisk,
+            likelihood: item.likelihood, severity: item.severity, controlMeasures: item.controlMeasures,
+            residualLikelihood: item.residualLikelihood, residualSeverity: item.residualSeverity,
+            responsiblePerson: item.responsiblePerson, reviewDate: item.reviewDate,
         });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -144,11 +181,11 @@ export default function RiskAssessmentPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    New Risk Assessment
+                    {editingId ? "Edit Risk Assessment" : "New Risk Assessment"}
                 </h1>
 
                 <div className="space-y-4">
@@ -242,7 +279,7 @@ export default function RiskAssessmentPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Save Risk Assessment
+                        {editingId ? "Save Changes" : "Save Risk Assessment"}
                     </button>
                 </div>
             </div>
@@ -311,10 +348,13 @@ export default function RiskAssessmentPage() {
                                         {item.location && `${item.location} · `}{formatDate(item.createdAt)}
                                     </p>
                                 </div>
+                                <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                    <Pencil size={16} />
+                                </button>
                                 <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                     <FileDown size={16} />
                                 </button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                     <Trash2 size={16} />
                                 </button>
                             </div>
