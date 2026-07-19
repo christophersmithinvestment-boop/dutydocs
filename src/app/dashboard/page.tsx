@@ -172,36 +172,42 @@ export default function DashboardPage() {
       value: stats.totalAssessments,
       icon: ClipboardCheck,
       color: "var(--color-safety-blue)",
+      href: "/risk-assessment",
     },
     {
       label: "High Risks",
       value: stats.openRisks,
       icon: ShieldAlert,
       color: "var(--color-safety-red)",
+      href: "/risk-assessment",
     },
     {
       label: "Active Permits",
       value: stats.activePermits,
       icon: ShieldCheck,
       color: "var(--color-safety-green)",
+      href: "/permits",
     },
     {
       label: "Incidents Logged",
       value: stats.incidents,
       icon: AlertTriangle,
       color: "var(--color-safety-orange)",
+      href: "/incidents",
     },
     {
       label: "Inspections Done",
       value: stats.inspections,
       icon: CheckCircle2,
       color: "var(--color-safety-teal)",
+      href: "/inspections",
     },
     {
       label: "First Aid Entries",
       value: stats.firstAid,
       icon: HeartPulse,
       color: "var(--color-safety-red)",
+      href: "/first-aid",
     },
   ];
 
@@ -248,9 +254,10 @@ export default function DashboardPage() {
         {/* Left Column: KPI Grid */}
         <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-4">
           {kpis.map((kpi, i) => (
-            <div
+            <Link
               key={kpi.label}
-              className="card card-rail stagger-item cursor-default"
+              href={kpi.href}
+              className="card card-rail stagger-item block"
               style={{ animationDelay: `${i * 60}ms`, "--rail-color": kpi.color } as React.CSSProperties}
             >
               <div className="flex items-center justify-between mb-3">
@@ -267,7 +274,7 @@ export default function DashboardPage() {
               <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
                 {kpi.label}
               </p>
-            </div>
+            </Link>
           ))}
         </div>
 
