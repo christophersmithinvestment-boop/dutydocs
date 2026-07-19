@@ -43,7 +43,7 @@ const navGroups = [
         items: [
             { href: "/risk-assessment", label: "Risk Assessment", icon: ClipboardCheck },
             { href: "/coshh", label: "COSHH", icon: FlaskConical },
-            { href: "/rams", label: "RAMS", icon: FileText },
+            { href: "/rams", label: "Method Statement", icon: FileText },
             { href: "/dse", label: "DSE Assessment", icon: Monitor },
             { href: "/manual-handling", label: "Manual Handling", icon: Dumbbell },
         ],

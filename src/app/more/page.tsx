@@ -31,7 +31,7 @@ const sections = [
         items: [
             { href: "/risk-assessment", label: "Risk Assessment", icon: ClipboardCheck, color: "var(--color-safety-orange)" },
             { href: "/coshh", label: "COSHH Assessment", icon: FlaskConical, color: "var(--color-safety-purple)" },
-            { href: "/rams", label: "RAMS", icon: FileText, color: "var(--color-safety-blue)" },
+            { href: "/rams", label: "Method Statement", icon: FileText, color: "var(--color-safety-blue)" },
             { href: "/dse", label: "DSE Assessment", icon: Monitor, color: "var(--color-safety-green)" },
             { href: "/manual-handling", label: "Manual Handling", icon: Dumbbell, color: "var(--color-safety-yellow)" },
         ],

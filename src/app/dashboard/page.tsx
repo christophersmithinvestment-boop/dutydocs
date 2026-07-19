@@ -34,7 +34,7 @@ import UpgradeModal from "@/components/UpgradeModal";
 const quickActions = [
   { href: "/risk-assessment", label: "Risk\nAssessment", icon: ClipboardCheck, color: "var(--color-safety-orange)" },
   { href: "/coshh", label: "COSHH", icon: FlaskConical, color: "var(--color-safety-purple)" },
-  { href: "/rams", label: "RAMS", icon: FileText, color: "var(--color-safety-blue)" },
+  { href: "/rams", label: "Method\nStatement", icon: FileText, color: "var(--color-safety-blue)" },
   { href: "/incidents", label: "Incident\nReport", icon: AlertTriangle, color: "var(--color-safety-red)" },
   { href: "/near-miss", label: "Near\nMiss", icon: TriangleAlert, color: "var(--color-safety-yellow)" },
   { href: "/inspections", label: "Site\nInspection", icon: Search, color: "var(--color-safety-green)" },
@@ -146,7 +146,7 @@ export default function DashboardPage() {
       const allItems: ActivityItem[] = [
         ...risks.map((r) => ({ id: r.id, type: "Risk Assessment", title: r.title, createdAt: r.createdAt })),
         ...coshh.map((c) => ({ id: c.id, type: "COSHH", title: c.substanceName, createdAt: c.createdAt })),
-        ...rams.map((r) => ({ id: r.id, type: "RAMS", title: r.taskTitle, createdAt: r.createdAt })),
+        ...rams.map((r) => ({ id: r.id, type: "Method Statement", title: r.taskTitle, createdAt: r.createdAt })),
         ...incidents.map((i) => ({ id: i.id, type: "Incident", title: i.description, createdAt: i.createdAt })),
         ...nearMisses.map((n) => ({ id: n.id, type: "Near Miss", title: n.description, createdAt: n.createdAt })),
         ...inspections.map((i) => ({ id: i.id, type: "Inspection", title: i.siteName, createdAt: i.createdAt })),

@@ -73,7 +73,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
                 <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                    A comprehensive mobile toolkit for health and safety professionals. Create risk assessments, COSHH records, RAMS, incident reports, and more.
+                    A comprehensive mobile toolkit for health and safety professionals. Create risk assessments, method statements, COSHH records, incident reports, and more.
                 </p>
             </div>
 

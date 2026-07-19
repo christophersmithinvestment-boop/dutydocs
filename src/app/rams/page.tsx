@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, FileText, ArrowLeft, Trash2, ChevronDown, ChevronUp, FileDown, Pencil } from "lucide-react";
-import { generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
+import { Plus, FileText, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
+import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -11,40 +11,56 @@ import { ModuleToolbar } from "@/components/ModuleToolbar";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 
-interface RAMSStep {
+// A method statement is the "how the work will be carried out safely"
+// document — sequenced steps, who does each one, what they need to be
+// competent to do it. Risk scoring (likelihood/severity/hazards/controls)
+// deliberately lives in the Risk Assessment module, not here, so the two
+// stay genuinely distinct instead of duplicating each other.
+interface MethodStatementStep {
     id: string;
     description: string;
-    hazards: string;
-    controls: string;
     responsiblePerson: string;
+    competencyRequired: string;
 }
 
-interface RAMS {
+interface MethodStatement {
     id: string;
     taskTitle: string;
     projectName: string;
     location: string;
-    assessor: string;
+    preparedBy: string;
     taskDescription: string;
-    steps: RAMSStep[];
+    steps: MethodStatementStep[];
     ppeRequired: string[];
     plantEquipment: string;
-    overallLikelihood: number;
-    overallSeverity: number;
-    riskLevel: RiskLevel;
     emergencyProcedures: string;
     reviewDate: string;
     createdAt: string;
 }
-
-const STORE_KEY = "rams";
 
 const PPE_LIST = [
     "Hard Hat", "Hi-Vis Vest", "Safety Boots", "Safety Goggles",
     "Gloves", "Ear Defenders", "Harness", "Respirator", "Face Shield",
 ];
 
-export default function RAMSPage() {
+const emptyStep = (): MethodStatementStep => ({
+    id: generateId(), description: "", responsiblePerson: "", competencyRequired: "",
+});
+
+// Older records saved before this module became a dedicated Method
+// Statement may be missing preparedBy/competencyRequired (they used to be
+// called something else, or didn't exist) — coerce to safe defaults so
+// editing an old record doesn't hand a `value={undefined}` to an input.
+function normaliseStep(step: Partial<MethodStatementStep> & { id: string }): MethodStatementStep {
+    return {
+        id: step.id,
+        description: step.description ?? "",
+        responsiblePerson: step.responsiblePerson ?? "",
+        competencyRequired: step.competencyRequired ?? "",
+    };
+}
+
+export default function MethodStatementPage() {
     const {
         items,
         filteredItems,
@@ -59,18 +75,16 @@ export default function RAMSPage() {
         editItem,
         exportData,
         importData
-    } = useModuleData<RAMS & { title: string }>({ module: "rams", storeKey: "rams" });
+    } = useModuleData<MethodStatement & { title: string }>({ module: "rams", storeKey: "rams" });
     const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [steps, setSteps] = useState<RAMSStep[]>([
-        { id: "1", description: "", hazards: "", controls: "", responsiblePerson: "" },
-    ]);
+    const [steps, setSteps] = useState<MethodStatementStep[]>([emptyStep()]);
     const [form, setForm] = useState({
-        taskTitle: "", projectName: "", location: "", assessor: "",
+        taskTitle: "", projectName: "", location: "", preparedBy: "",
         taskDescription: "", ppeRequired: [] as string[], plantEquipment: "",
-        overallLikelihood: 3, overallSeverity: 3, emergencyProcedures: "", reviewDate: "",
+        emergencyProcedures: "", reviewDate: "",
     });
     const { showToast } = useToast();
 
@@ -84,10 +98,10 @@ export default function RAMSPage() {
     };
 
     const addStep = () => {
-        setSteps([...steps, { id: generateId(), description: "", hazards: "", controls: "", responsiblePerson: "" }]);
+        setSteps([...steps, emptyStep()]);
     };
 
-    const updateStep = (id: string, field: keyof RAMSStep, value: string) => {
+    const updateStep = (id: string, field: keyof MethodStatementStep, value: string) => {
         setSteps(steps.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
     };
 
@@ -97,30 +111,28 @@ export default function RAMSPage() {
     };
 
     const resetForm = () => {
-        setSteps([{ id: "1", description: "", hazards: "", controls: "", responsiblePerson: "" }]);
+        setSteps([emptyStep()]);
         setForm({
-            taskTitle: "", projectName: "", location: "", assessor: "",
+            taskTitle: "", projectName: "", location: "", preparedBy: "",
             taskDescription: "", ppeRequired: [], plantEquipment: "",
-            overallLikelihood: 3, overallSeverity: 3, emergencyProcedures: "", reviewDate: "",
+            emergencyProcedures: "", reviewDate: "",
         });
         setEditingId(null);
     };
 
     const handleSave = () => {
         if (!form.taskTitle.trim()) return;
-        const riskLevel = calculateRiskLevel(form.overallLikelihood, form.overallSeverity);
 
         if (editingId) {
-            const updatedItem: RAMS & { title: string } = {
+            const updatedItem: MethodStatement & { title: string } = {
                 id: editingId,
                 ...form,
                 title: form.taskTitle,
                 steps,
-                riskLevel,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
             editItem(editingId, updatedItem);
-            showToast("RAMS updated");
+            showToast("Method statement updated");
             setShowForm(false);
             resetForm();
             return;
@@ -131,66 +143,60 @@ export default function RAMSPage() {
             return;
         }
 
-        const newItem: RAMS & { title: string } = {
+        const newItem: MethodStatement & { title: string } = {
             id: generateId(),
             ...form,
             title: form.taskTitle, // Map for search
             steps,
-            riskLevel,
             createdAt: new Date().toISOString()
         };
         addItem(newItem);
-        showToast("RAMS saved successfully!");
+        showToast("Method statement saved successfully!");
         setShowForm(false);
         resetForm();
     };
 
-    const handleEdit = (item: RAMS & { title: string }) => {
+    const handleEdit = (item: MethodStatement & { title: string }) => {
         setForm({
             taskTitle: item.taskTitle, projectName: item.projectName, location: item.location,
-            assessor: item.assessor, taskDescription: item.taskDescription,
-            ppeRequired: item.ppeRequired, plantEquipment: item.plantEquipment,
-            overallLikelihood: item.overallLikelihood, overallSeverity: item.overallSeverity,
+            preparedBy: item.preparedBy ?? "", taskDescription: item.taskDescription,
+            ppeRequired: item.ppeRequired ?? [], plantEquipment: item.plantEquipment,
             emergencyProcedures: item.emergencyProcedures, reviewDate: item.reviewDate,
         });
-        setSteps(item.steps);
+        setSteps(item.steps?.length ? item.steps.map(normaliseStep) : [emptyStep()]);
         setEditingId(item.id);
         setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("RAMS deleted", "info");
+        showToast("Method statement deleted", "info");
     };
 
-    const handleExportPDF = (item: RAMS) => {
+    const handleExportPDF = (item: MethodStatement) => {
         const pdf = new DutyDocsPDF();
-        pdf.addHeader("Risk Assessment & Method Statement", `Ref: ${item.id.split("-")[0]}`);
+        pdf.addHeader("Method Statement", `Ref: ${item.id.split("-")[0]}`);
         pdf.addSection("Task Details");
         pdf.addKeyValue("Task Title", item.taskTitle);
         pdf.addKeyValue("Project Name", item.projectName);
         pdf.addKeyValue("Location", item.location);
-        pdf.addKeyValue("Assessor", item.assessor);
+        pdf.addKeyValue("Prepared By", item.preparedBy);
         pdf.addKeyValue("Created", pdfDate(item.createdAt));
         pdf.addKeyValue("Review Date", pdfDate(item.reviewDate));
         pdf.addTextBlock("Task Description", item.taskDescription);
-        pdf.addSection("Method Statement");
+        pdf.addSection("Sequence of Work");
         pdf.addTable(
-            ["Step", "Description", "Hazards", "Controls", "Responsible"],
-            item.steps.map((s, i) => [String(i + 1), s.description, s.hazards, s.controls, s.responsiblePerson]),
-            [12, 40, 40, 40, 38]
+            ["Step", "Action", "Responsible", "Competency Required"],
+            (item.steps ?? []).map((s, i) => [String(i + 1), s.description, s.responsiblePerson, s.competencyRequired]),
+            [12, 60, 48, 50]
         );
-        pdf.addSection("Overall Risk Rating");
-        pdf.addKeyValue("Likelihood", item.overallLikelihood);
-        pdf.addKeyValue("Severity", item.overallSeverity);
-        pdf.addRiskBadge("Risk Level", item.riskLevel, item.overallLikelihood * item.overallSeverity);
-        pdf.addSection("PPE & Equipment");
+        pdf.addSection("PPE, Plant & Equipment");
         pdf.addTagList("PPE Required", item.ppeRequired);
-        pdf.addTextBlock("Plant & Equipment", item.plantEquipment);
+        pdf.addTextBlock("Plant, Equipment & Materials", item.plantEquipment);
         pdf.addSection("Emergency Procedures");
         pdf.addTextBlock("Procedures", item.emergencyProcedures);
         const slug = item.taskTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
-        pdf.save(`rams-${slug}.pdf`);
+        pdf.save(`method-statement-${slug}.pdf`);
     };
 
     if (showForm) {
@@ -200,7 +206,7 @@ export default function RAMSPage() {
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    {editingId ? "Edit RAMS" : "New RAMS"}
+                    {editingId ? "Edit Method Statement" : "New Method Statement"}
                 </h1>
 
                 <div className="space-y-4">
@@ -223,19 +229,22 @@ export default function RAMSPage() {
                         <textarea className="input-field" placeholder="Describe the overall task/activity..." value={form.taskDescription} onChange={(e) => setForm({ ...form, taskDescription: e.target.value })} />
                     </div>
 
-                    {/* Method Steps */}
+                    {/* Sequence of Work */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label className="input-label" style={{ margin: 0 }}>Method Statement Steps</label>
+                            <label className="input-label" style={{ margin: 0 }}>Sequence of Work</label>
                             <button onClick={addStep} className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "12px" }}>
                                 <Plus size={14} /> Add Step
                             </button>
                         </div>
+                        <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
+                            The order the work happens in — what to do, who does it, what they need to be competent to do it.
+                        </p>
                         <div className="space-y-3">
                             {steps.map((step, idx) => (
                                 <div key={step.id} className="card" style={{ background: "var(--color-bg-secondary)" }}>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-bold" style={{ color: "var(--color-safety-orange)" }}>Step {idx + 1}</span>
+                                        <span className="text-xs font-bold" style={{ color: "var(--color-safety-blue)" }}>Step {idx + 1}</span>
                                         {steps.length > 1 && (
                                             <button onClick={() => removeStep(step.id)} className="btn btn-ghost" style={{ padding: "0.25rem", color: "var(--color-safety-red)" }}>
                                                 <Trash2 size={14} />
@@ -243,10 +252,9 @@ export default function RAMSPage() {
                                         )}
                                     </div>
                                     <div className="space-y-2">
-                                        <input className="input-field" placeholder="Step description" value={step.description} onChange={(e) => updateStep(step.id, "description", e.target.value)} />
-                                        <input className="input-field" placeholder="Associated hazards" value={step.hazards} onChange={(e) => updateStep(step.id, "hazards", e.target.value)} />
-                                        <input className="input-field" placeholder="Control measures" value={step.controls} onChange={(e) => updateStep(step.id, "controls", e.target.value)} />
-                                        <input className="input-field" placeholder="Responsible person" value={step.responsiblePerson} onChange={(e) => updateStep(step.id, "responsiblePerson", e.target.value)} />
+                                        <input className="input-field" placeholder="What happens in this step" value={step.description} onChange={(e) => updateStep(step.id, "description", e.target.value)} />
+                                        <input className="input-field" placeholder="Who's responsible (name/trade)" value={step.responsiblePerson} onChange={(e) => updateStep(step.id, "responsiblePerson", e.target.value)} />
+                                        <input className="input-field" placeholder="Competency required (e.g. CSCS card, banksman trained)" value={step.competencyRequired} onChange={(e) => updateStep(step.id, "competencyRequired", e.target.value)} />
                                     </div>
                                 </div>
                             ))}
@@ -276,44 +284,19 @@ export default function RAMSPage() {
                     </div>
 
                     <div>
-                        <label className="input-label">Plant & Equipment</label>
-                        <textarea className="input-field" placeholder="List plant/equipment needed..." value={form.plantEquipment} onChange={(e) => setForm({ ...form, plantEquipment: e.target.value })} />
-                    </div>
-
-                    {/* Overall Risk */}
-                    <div className="card" style={{ background: "var(--color-bg-secondary)" }}>
-                        <p className="text-sm font-bold mb-3" style={{ color: "var(--color-text-primary)" }}>Overall Risk Rating</p>
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                            <div>
-                                <label className="input-label">Likelihood (1-5)</label>
-                                <select className="input-field" value={form.overallLikelihood} onChange={(e) => setForm({ ...form, overallLikelihood: Number(e.target.value) })}>
-                                    {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} - {["Very Unlikely", "Unlikely", "Possible", "Likely", "Very Likely"][n - 1]}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="input-label">Severity (1-5)</label>
-                                <select className="input-field" value={form.overallSeverity} onChange={(e) => setForm({ ...form, overallSeverity: Number(e.target.value) })}>
-                                    {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} - {["Negligible", "Minor", "Moderate", "Major", "Catastrophic"][n - 1]}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold" style={{ color: "var(--color-text-muted)" }}>Risk:</span>
-                            <span className={`badge ${getRiskBadgeClass(calculateRiskLevel(form.overallLikelihood, form.overallSeverity))}`}>
-                                {form.overallLikelihood * form.overallSeverity} — {calculateRiskLevel(form.overallLikelihood, form.overallSeverity).toUpperCase()}
-                            </span>
-                        </div>
+                        <label className="input-label">Plant, Equipment & Materials</label>
+                        <textarea className="input-field" placeholder="List plant, equipment and materials needed..." value={form.plantEquipment} onChange={(e) => setForm({ ...form, plantEquipment: e.target.value })} />
                     </div>
 
                     <div>
                         <label className="input-label">Emergency Procedures</label>
-                        <textarea className="input-field" placeholder="Emergency response plan..." value={form.emergencyProcedures} onChange={(e) => setForm({ ...form, emergencyProcedures: e.target.value })} />
+                        <textarea className="input-field" placeholder="What to do if something goes wrong..." value={form.emergencyProcedures} onChange={(e) => setForm({ ...form, emergencyProcedures: e.target.value })} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="input-label">Assessor</label>
-                            <input className="input-field" placeholder="Your name" value={form.assessor} onChange={(e) => setForm({ ...form, assessor: e.target.value })} />
+                            <label className="input-label">Prepared By</label>
+                            <input className="input-field" placeholder="Your name" value={form.preparedBy} onChange={(e) => setForm({ ...form, preparedBy: e.target.value })} />
                         </div>
                         <div>
                             <label className="input-label">Review Date</label>
@@ -322,7 +305,7 @@ export default function RAMSPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        {editingId ? "Save Changes" : "Save RAMS"}
+                        {editingId ? "Save Changes" : "Save Method Statement"}
                     </button>
                 </div>
             </div>
@@ -333,7 +316,7 @@ export default function RAMSPage() {
         <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>RAMS</h1>
+                    <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Method Statements</h1>
                     <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} method statement{items.length !== 1 ? "s" : ""}</p>
                 </div>
                 <button onClick={() => setShowForm(true)} className="btn btn-primary">
@@ -346,7 +329,7 @@ export default function RAMSPage() {
                 onSearchChange={setSearchTerm}
                 statusFilter={statusFilter}
                 onStatusChange={setStatusFilter}
-                placeholder="Search RAMS..."
+                placeholder="Search method statements..."
                 onExport={exportData}
                 onImport={async (file) => {
                     try {
@@ -368,10 +351,10 @@ export default function RAMSPage() {
                 <div className="empty-state">
                     <FileText size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
                     <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
-                        {searchTerm || statusFilter !== "all" ? "No matching records found" : "No RAMS yet"}
+                        {searchTerm || statusFilter !== "all" ? "No matching records found" : "No method statements yet"}
                     </p>
                     <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
-                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Create a risk assessment & method statement"}
+                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "Create a step-by-step method statement for a safe system of work"}
                     </p>
                 </div>
             ) : (
@@ -383,14 +366,10 @@ export default function RAMSPage() {
                                     <FileText size={16} style={{ color: "var(--color-safety-blue)" }} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.taskTitle}</p>
-                                        <span className={`badge ${getRiskBadgeClass(item.riskLevel)}`}>
-                                            {item.riskLevel.toUpperCase()}
-                                        </span>
-                                    </div>
+                                    <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.taskTitle}</p>
                                     <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                                        {item.steps.length} step{item.steps.length !== 1 ? "s" : ""} · {formatDate(item.createdAt)}
+                                        {(item.steps ?? []).length} step{(item.steps ?? []).length !== 1 ? "s" : ""}
+                                        {item.location && ` · ${item.location}`} · {formatDate(item.createdAt)}
                                     </p>
                                 </div>
                                 <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">

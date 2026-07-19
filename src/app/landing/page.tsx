@@ -14,7 +14,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 const FEATURES = [
     { icon: ClipboardCheck, label: "Risk Assessments", desc: "5×5 matrix scoring with residual risk tracking", color: "#f97316" },
     { icon: FlaskConical, label: "COSHH", desc: "Chemical safety with GHS hazard symbols", color: "#a855f7" },
-    { icon: FileText, label: "RAMS", desc: "Multi-step method statements with PPE checklists", color: "#3b82f6" },
+    { icon: FileText, label: "Method Statement", desc: "Step-by-step safe systems of work with responsibilities and PPE", color: "#3b82f6" },
     { icon: AlertTriangle, label: "Incident Reports", desc: "RIDDOR-aware reporting with root cause analysis", color: "#ef4444" },
     { icon: TriangleAlert, label: "Near Misses", desc: "Quick-capture close calls with severity rating", color: "#eab308" },
     { icon: Search, label: "Site Inspections", desc: "Checklist-driven audits with scoring", color: "#10b981" },
