@@ -80,6 +80,7 @@ export default function RiskAssessmentPage() {
         residualSeverity: 1,
         responsiblePerson: "",
         reviewDate: "",
+        status: "draft" as RiskAssessment["status"],
     });
     const { showToast } = useToast();
 
@@ -88,6 +89,7 @@ export default function RiskAssessmentPage() {
             title: "", location: "", assessor: "", hazardDescription: "",
             whoAtRisk: "", likelihood: 3, severity: 3, controlMeasures: "",
             residualLikelihood: 1, residualSeverity: 1, responsiblePerson: "", reviewDate: "",
+            status: "draft",
         });
         setEditingId(null);
     };
@@ -105,7 +107,6 @@ export default function RiskAssessmentPage() {
                 riskLevel,
                 residualRiskLevel,
                 createdAt: existing?.createdAt ?? new Date().toISOString(),
-                status: existing?.status ?? "active",
             };
             editItem(editingId, updatedItem);
             showToast("Risk assessment updated");
@@ -125,7 +126,6 @@ export default function RiskAssessmentPage() {
             riskLevel,
             residualRiskLevel,
             createdAt: new Date().toISOString(),
-            status: "active",
         };
         addItem(newItem);
         showToast("Risk assessment saved successfully!");
@@ -140,6 +140,7 @@ export default function RiskAssessmentPage() {
             likelihood: item.likelihood, severity: item.severity, controlMeasures: item.controlMeasures,
             residualLikelihood: item.residualLikelihood, residualSeverity: item.residualSeverity,
             responsiblePerson: item.responsiblePerson, reviewDate: item.reviewDate,
+            status: item.status ?? "draft",
         });
         setEditingId(item.id);
         setShowForm(true);
@@ -176,6 +177,15 @@ export default function RiskAssessmentPage() {
         pdf.addRiskBadge("Residual Risk", item.residualRiskLevel, item.residualLikelihood * item.residualSeverity);
         const slug = item.title.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
         pdf.save(`risk-assessment-${slug}.pdf`);
+    };
+
+    const statusBadge = (s: string) => {
+        switch (s) {
+            case "draft": return "badge-blue";
+            case "active": return "badge-green";
+            case "closed": return "badge-purple";
+            default: return "badge-blue";
+        }
     };
 
     if (showForm) {
@@ -278,6 +288,15 @@ export default function RiskAssessmentPage() {
                         </div>
                     </div>
 
+                    <div>
+                        <label className="input-label">Status</label>
+                        <select className="input-field" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as RiskAssessment["status"] })}>
+                            <option value="draft">Draft — still being worked on</option>
+                            <option value="active">Active — complete and currently in effect</option>
+                            <option value="closed">Closed — no longer relevant</option>
+                        </select>
+                    </div>
+
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
                         {editingId ? "Save Changes" : "Save Risk Assessment"}
                     </button>
@@ -303,6 +322,11 @@ export default function RiskAssessmentPage() {
                 onSearchChange={setSearchTerm}
                 statusFilter={statusFilter}
                 onStatusChange={setStatusFilter}
+                statusOptions={[
+                    { value: "draft", label: "Draft" },
+                    { value: "active", label: "Active" },
+                    { value: "closed", label: "Closed" },
+                ]}
                 placeholder="Search assessments..."
                 onExport={exportData}
                 onImport={async (file) => {
@@ -342,6 +366,9 @@ export default function RiskAssessmentPage() {
                                         <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text-primary)" }}>{item.title}</p>
                                         <span className={`badge ${getRiskBadgeClass(item.riskLevel)}`}>
                                             {item.riskLevel.toUpperCase()}
+                                        </span>
+                                        <span className={`badge ${statusBadge(item.status ?? "draft")}`}>
+                                            {(item.status ?? "draft").toUpperCase()}
                                         </span>
                                     </div>
                                     <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>

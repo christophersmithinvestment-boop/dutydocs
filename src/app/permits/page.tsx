@@ -269,6 +269,12 @@ export default function PermitsPage() {
                     onSearchChange={setSearchTerm}
                     statusFilter={statusFilter}
                     onStatusChange={setStatusFilter}
+                    statusOptions={[
+                        { value: "draft", label: "Draft" },
+                        { value: "pending", label: "Pending" },
+                        { value: "active", label: "Active" },
+                        { value: "closed", label: "Closed" },
+                    ]}
                     placeholder="Search permit type..."
                     onExport={exportData}
                     onImport={async (file) => {

@@ -1,11 +1,22 @@
 import React, { useRef } from "react";
 import { Search, Filter, X, Download, Upload } from "lucide-react";
 
+interface StatusOption {
+    value: string;
+    label: string;
+}
+
 interface ModuleToolbarProps {
     searchTerm: string;
     onSearchChange: (value: string) => void;
     statusFilter: string;
     onStatusChange: (value: string) => void;
+    // Only pass this when the module's records actually carry a matching
+    // `status` value. Without it, the filter is omitted entirely rather
+    // than shown with options that can never match anything — a filter
+    // that always returns zero results reads as a bug, not a missing
+    // feature.
+    statusOptions?: StatusOption[];
     placeholder?: string;
     onExport?: () => void;
     onImport?: (file: File) => void;
@@ -16,6 +27,7 @@ export function ModuleToolbar({
     onSearchChange,
     statusFilter,
     onStatusChange,
+    statusOptions,
     placeholder = "Search records...",
     onExport,
     onImport,
@@ -64,25 +76,27 @@ export function ModuleToolbar({
             </div>
 
             {/* Status Filter */}
-            <div className="relative min-w-[140px]">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                    <Filter size={14} style={{ color: "var(--color-text-muted)" }} />
+            {statusOptions && statusOptions.length > 0 && (
+                <div className="relative min-w-[140px]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                        <Filter size={14} style={{ color: "var(--color-text-muted)" }} />
+                    </div>
+                    <select
+                        className="input-field pl-9 w-full appearance-none"
+                        value={statusFilter}
+                        onChange={(e) => onStatusChange(e.target.value)}
+                        style={{
+                            background: "var(--color-bg-secondary)",
+                            borderColor: "var(--color-border)",
+                        }}
+                    >
+                        <option value="all">All Status</option>
+                        {statusOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
                 </div>
-                <select
-                    className="input-field pl-9 w-full appearance-none"
-                    value={statusFilter}
-                    onChange={(e) => onStatusChange(e.target.value)}
-                    style={{
-                        background: "var(--color-bg-secondary)",
-                        borderColor: "var(--color-border)",
-                    }}
-                >
-                    <option value="all">All Status</option>
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                    <option value="closed">Closed</option>
-                </select>
-            </div>
+            )}
 
             {/* Export / Import */}
             {(onExport || onImport) && (

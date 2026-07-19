@@ -189,6 +189,12 @@ export default function TrainingRecordsPage() {
                     onSearchChange={setSearchTerm}
                     statusFilter={statusFilter}
                     onStatusChange={setStatusFilter}
+                    statusOptions={[
+                        { value: "valid", label: "Valid" },
+                        { value: "expiring", label: "Expiring Soon" },
+                        { value: "expired", label: "Expired" },
+                        { value: "none", label: "No Expiry Set" },
+                    ]}
                     placeholder="Search name or course..."
                     onExport={exportData}
                     onImport={async (file) => {
