@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, AlertTriangle, ArrowLeft, Trash2, FileDown } from "lucide-react";
+import { Plus, AlertTriangle, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDateTime } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
@@ -50,12 +50,14 @@ export default function IncidentsPage() {
         totalRecords,
         addItem,
         removeItem,
+        editItem,
         exportData,
         importData
     } = useModuleData<Incident & { title: string }>({ module: "incidents", storeKey: "incidents" });
     const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
         dateTime: "", location: "", description: "", injuryType: "",
         injuredPerson: "", firstAidGiven: false, firstAidDetails: "",
@@ -65,8 +67,33 @@ export default function IncidentsPage() {
     });
     const { showToast } = useToast();
 
+    const resetForm = () => {
+        setForm({
+            dateTime: "", location: "", description: "", injuryType: "",
+            injuredPerson: "", firstAidGiven: false, firstAidDetails: "",
+            witnesses: "", riddorReportable: false, immediateActions: "",
+            rootCause: "", correctiveActions: "", reportedBy: "",
+            severity: "minor",
+        });
+        setEditingId(null);
+    };
+
     const handleSave = () => {
         if (!form.description.trim()) return;
+
+        if (editingId) {
+            const updatedItem: Incident & { title: string } = {
+                id: editingId,
+                ...form,
+                title: form.description,
+                createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
+            };
+            editItem(editingId, updatedItem);
+            showToast("Incident report updated");
+            setShowForm(false);
+            resetForm();
+            return;
+        }
 
         if (isLimitReached(totalRecords)) {
             setShowUpgradeModal(true);
@@ -82,13 +109,21 @@ export default function IncidentsPage() {
         addItem(newItem);
         showToast("Incident report submitted!");
         setShowForm(false);
+        resetForm();
+    };
+
+    const handleEdit = (item: Incident & { title: string }) => {
         setForm({
-            dateTime: "", location: "", description: "", injuryType: "",
-            injuredPerson: "", firstAidGiven: false, firstAidDetails: "",
-            witnesses: "", riddorReportable: false, immediateActions: "",
-            rootCause: "", correctiveActions: "", reportedBy: "",
-            severity: "minor",
+            dateTime: item.dateTime, location: item.location, description: item.description,
+            injuryType: item.injuryType, injuredPerson: item.injuredPerson,
+            firstAidGiven: item.firstAidGiven, firstAidDetails: item.firstAidDetails,
+            witnesses: item.witnesses, riddorReportable: item.riddorReportable,
+            immediateActions: item.immediateActions, rootCause: item.rootCause,
+            correctiveActions: item.correctiveActions, reportedBy: item.reportedBy,
+            severity: item.severity,
         });
+        setEditingId(item.id);
+        setShowForm(true);
     };
 
     const handleDelete = (id: string) => {
@@ -133,11 +168,11 @@ export default function IncidentsPage() {
     if (showForm) {
         return (
             <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-2xl mx-auto">
-                <button onClick={() => setShowForm(false)} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
+                <button onClick={() => { setShowForm(false); resetForm(); }} className="btn btn-ghost mb-4" style={{ padding: "0.5rem 0" }}>
                     <ArrowLeft size={18} /> Back
                 </button>
                 <h1 className="text-xl font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>
-                    Report Incident
+                    {editingId ? "Edit Incident Report" : "Report Incident"}
                 </h1>
 
                 <div className="space-y-4">
@@ -231,7 +266,7 @@ export default function IncidentsPage() {
                     </div>
 
                     <button onClick={handleSave} className="btn btn-primary btn-full mt-4">
-                        Submit Incident Report
+                        {editingId ? "Save Changes" : "Submit Incident Report"}
                     </button>
                 </div>
             </div>
@@ -301,10 +336,13 @@ export default function IncidentsPage() {
                                         {item.riddorReportable && " · RIDDOR"}
                                     </p>
                                 </div>
+                                <button onClick={() => handleEdit(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-text-secondary)" }} title="Edit">
+                                    <Pencil size={16} />
+                                </button>
                                 <button onClick={() => handleExportPDF(item)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-accent)" }} title="Export PDF">
                                     <FileDown size={16} />
                                 </button>
-                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }}>
+                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost" style={{ padding: "0.5rem", color: "var(--color-safety-red)" }} title="Delete">
                                     <Trash2 size={16} />
                                 </button>
                             </div>

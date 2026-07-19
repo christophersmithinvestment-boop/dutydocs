@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loadFromStore, timeAgo, getExpiryStatus } from "@/lib/utils";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { loadAllModuleRecords } from "@/lib/database";
 import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
 
@@ -76,66 +78,92 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
-    // Gather stats from localStorage
-    const risks = loadFromStore<{ id: string; title: string; createdAt: string; riskLevel?: string }[]>("risk_assessments", []);
-    const coshh = loadFromStore<{ id: string; substanceName: string; createdAt: string }[]>("coshh_assessments", []);
-    const rams = loadFromStore<{ id: string; taskTitle: string; createdAt: string }[]>("rams", []);
-    const incidents = loadFromStore<{ id: string; description: string; createdAt: string }[]>("incidents", []);
-    const nearMisses = loadFromStore<{ id: string; description: string; createdAt: string }[]>("near_misses", []);
-    const inspections = loadFromStore<{ id: string; siteName: string; createdAt: string }[]>("inspections", []);
-    const talks = loadFromStore<{ id: string; topic: string; createdAt: string }[]>("toolbox_talks", []);
-    const permits = loadFromStore<{ id: string; description: string; status: string; createdAt: string }[]>("permits", []);
-    const dse = loadFromStore<{ id: string; employeeName: string; createdAt: string }[]>("dse_assessments", []);
-    const manualHandling = loadFromStore<{ id: string; taskDescription: string; createdAt: string }[]>("manual_handling", []);
-    const fireDrills = loadFromStore<{ id: string; location: string; createdAt: string }[]>("fire_drills", []);
-    const firstAid = loadFromStore<{ id: string; patientName: string; createdAt: string }[]>("first_aid_log", []);
-    const ppe = loadFromStore<{ id: string; ppeType: string; expiryDate?: string; createdAt: string }[]>("ppe_register", []);
-    const training = loadFromStore<{ id: string; courseName: string; expiryDate?: string; createdAt: string }[]>("training_records", []);
+    type WithId = { id: string; createdAt: string };
+    type Risk = WithId & { title: string; riskLevel?: string };
+    type Coshh = WithId & { substanceName: string };
+    type Rams = WithId & { taskTitle: string };
+    type IncidentT = WithId & { description: string };
+    type NearMissT = WithId & { description: string };
+    type InspectionT = WithId & { siteName: string };
+    type Talk = WithId & { topic: string };
+    type PermitT = WithId & { description: string; status: string };
+    type Dse = WithId & { employeeName: string };
+    type ManualHandlingT = WithId & { taskDescription: string };
+    type FireDrillT = WithId & { location: string };
+    type FirstAidT = WithId & { patientName: string };
+    type Ppe = WithId & { ppeType: string; expiryDate?: string };
+    type Training = WithId & { courseName: string; expiryDate?: string };
 
-    const expiredT = training.filter(t => getExpiryStatus(t.expiryDate) === "expired").length;
-    const expiringT = training.filter(t => getExpiryStatus(t.expiryDate) === "expiring").length;
-    const expiredP = ppe.filter(p => getExpiryStatus(p.expiryDate) === "expired").length;
-    const expiringP = ppe.filter(p => getExpiryStatus(p.expiryDate) === "expiring").length;
+    const gatherStats = async () => {
+      // Cloud accounts save records to Supabase, not localStorage — read
+      // from the same source module pages write to, or every count here
+      // reads as zero regardless of how much data actually exists.
+      const grouped = isSupabaseConfigured ? await loadAllModuleRecords() : null;
+      const from = <T,>(key: string): T[] =>
+        grouped ? ((grouped[key] ?? []) as unknown as T[]) : loadFromStore<T[]>(key, []);
 
-    // Simple compliance score calculation
-    const totalItems = training.length + ppe.length;
-    const nonCompliant = expiredT + expiredP + expiringT + expiringP;
-    const score = totalItems > 0 ? Math.max(0, Math.round(((totalItems - nonCompliant) / totalItems) * 100)) : 100;
+      const risks = from<Risk>("risk_assessments");
+      const coshh = from<Coshh>("coshh_assessments");
+      const rams = from<Rams>("rams");
+      const incidents = from<IncidentT>("incidents");
+      const nearMisses = from<NearMissT>("near_misses");
+      const inspections = from<InspectionT>("inspections");
+      const talks = from<Talk>("toolbox_talks");
+      const permits = from<PermitT>("permits");
+      const dse = from<Dse>("dse_assessments");
+      const manualHandling = from<ManualHandlingT>("manual_handling");
+      const fireDrills = from<FireDrillT>("fire_drills");
+      const firstAid = from<FirstAidT>("first_aid_log");
+      const ppe = from<Ppe>("ppe_register");
+      const training = from<Training>("training_records");
 
-    setStats({
-      totalAssessments: risks.length + coshh.length + rams.length + dse.length + manualHandling.length,
-      openRisks: risks.filter((r) => r.riskLevel === "high" || r.riskLevel === "critical").length,
-      incidents: incidents.length + nearMisses.length,
-      inspections: inspections.length,
-      training: training.length,
-      firstAid: firstAid.length,
-      activePermits: permits.filter(p => p.status === "active").length,
-      expiredTraining: expiredT,
-      expiringTraining: expiringT,
-      expiredPPE: expiredP,
-      expiringPPE: expiringP,
-      complianceScore: score,
-    });
+      const expiredT = training.filter(t => getExpiryStatus(t.expiryDate) === "expired").length;
+      const expiringT = training.filter(t => getExpiryStatus(t.expiryDate) === "expiring").length;
+      const expiredP = ppe.filter(p => getExpiryStatus(p.expiryDate) === "expired").length;
+      const expiringP = ppe.filter(p => getExpiryStatus(p.expiryDate) === "expiring").length;
 
-    // Build recent activity
-    const allItems: ActivityItem[] = [
-      ...risks.map((r) => ({ id: r.id, type: "Risk Assessment", title: r.title, createdAt: r.createdAt })),
-      ...coshh.map((c) => ({ id: c.id, type: "COSHH", title: c.substanceName, createdAt: c.createdAt })),
-      ...rams.map((r) => ({ id: r.id, type: "RAMS", title: r.taskTitle, createdAt: r.createdAt })),
-      ...incidents.map((i) => ({ id: i.id, type: "Incident", title: i.description, createdAt: i.createdAt })),
-      ...nearMisses.map((n) => ({ id: n.id, type: "Near Miss", title: n.description, createdAt: n.createdAt })),
-      ...inspections.map((i) => ({ id: i.id, type: "Inspection", title: i.siteName, createdAt: i.createdAt })),
-      ...talks.map((t) => ({ id: t.id, type: "Toolbox Talk", title: t.topic, createdAt: t.createdAt })),
-      ...permits.map((p) => ({ id: p.id, type: "Permit", title: p.description, createdAt: p.createdAt })),
-      ...dse.map((d) => ({ id: d.id, type: "DSE", title: d.employeeName, createdAt: d.createdAt })),
-      ...manualHandling.map((m) => ({ id: m.id, type: "Manual Handling", title: m.taskDescription, createdAt: m.createdAt })),
-      ...fireDrills.map((f) => ({ id: f.id, type: "Fire Drill", title: f.location, createdAt: f.createdAt })),
-      ...firstAid.map((f) => ({ id: f.id, type: "First Aid", title: f.patientName, createdAt: f.createdAt })),
-      ...ppe.map((p) => ({ id: p.id, type: "PPE", title: p.ppeType, createdAt: p.createdAt })),
-      ...training.map((t) => ({ id: t.id, type: "Training", title: t.courseName, createdAt: t.createdAt })),
-    ];
-    allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    setRecentActivity(allItems.slice(0, 10));
+      // Simple compliance score calculation
+      const totalItems = training.length + ppe.length;
+      const nonCompliant = expiredT + expiredP + expiringT + expiringP;
+      const score = totalItems > 0 ? Math.max(0, Math.round(((totalItems - nonCompliant) / totalItems) * 100)) : 100;
+
+      setStats({
+        totalAssessments: risks.length + coshh.length + rams.length + dse.length + manualHandling.length,
+        openRisks: risks.filter((r) => r.riskLevel === "high" || r.riskLevel === "critical").length,
+        incidents: incidents.length + nearMisses.length,
+        inspections: inspections.length,
+        training: training.length,
+        firstAid: firstAid.length,
+        activePermits: permits.filter(p => p.status === "active").length,
+        expiredTraining: expiredT,
+        expiringTraining: expiringT,
+        expiredPPE: expiredP,
+        expiringPPE: expiringP,
+        complianceScore: score,
+      });
+
+      // Build recent activity
+      const allItems: ActivityItem[] = [
+        ...risks.map((r) => ({ id: r.id, type: "Risk Assessment", title: r.title, createdAt: r.createdAt })),
+        ...coshh.map((c) => ({ id: c.id, type: "COSHH", title: c.substanceName, createdAt: c.createdAt })),
+        ...rams.map((r) => ({ id: r.id, type: "RAMS", title: r.taskTitle, createdAt: r.createdAt })),
+        ...incidents.map((i) => ({ id: i.id, type: "Incident", title: i.description, createdAt: i.createdAt })),
+        ...nearMisses.map((n) => ({ id: n.id, type: "Near Miss", title: n.description, createdAt: n.createdAt })),
+        ...inspections.map((i) => ({ id: i.id, type: "Inspection", title: i.siteName, createdAt: i.createdAt })),
+        ...talks.map((t) => ({ id: t.id, type: "Toolbox Talk", title: t.topic, createdAt: t.createdAt })),
+        ...permits.map((p) => ({ id: p.id, type: "Permit", title: p.description, createdAt: p.createdAt })),
+        ...dse.map((d) => ({ id: d.id, type: "DSE", title: d.employeeName, createdAt: d.createdAt })),
+        ...manualHandling.map((m) => ({ id: m.id, type: "Manual Handling", title: m.taskDescription, createdAt: m.createdAt })),
+        ...fireDrills.map((f) => ({ id: f.id, type: "Fire Drill", title: f.location, createdAt: f.createdAt })),
+        ...firstAid.map((f) => ({ id: f.id, type: "First Aid", title: f.patientName, createdAt: f.createdAt })),
+        ...ppe.map((p) => ({ id: p.id, type: "PPE", title: p.ppeType, createdAt: p.createdAt })),
+        ...training.map((t) => ({ id: t.id, type: "Training", title: t.courseName, createdAt: t.createdAt })),
+      ];
+      allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setRecentActivity(allItems.slice(0, 10));
+    };
+
+    gatherStats();
   }, []);
 
   const kpis = [

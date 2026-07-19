@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Mail, Lock, User, ArrowRight, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
 
@@ -11,6 +11,9 @@ export default function SignupPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [marketingConsent, setMarketingConsent] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -34,7 +37,12 @@ export default function SignupPage() {
             email,
             password,
             options: {
-                data: { full_name: fullName },
+                data: {
+                    full_name: fullName,
+                    marketing_consent: marketingConsent,
+                    // Recorded either way — proof of the opt-in/opt-out decision, not just its current value.
+                    marketing_consent_updated_at: new Date().toISOString(),
+                },
             },
         });
 
@@ -175,14 +183,24 @@ export default function SignupPage() {
                                 style={{ color: "var(--color-text-muted)" }}
                             />
                             <input
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 className="input-field"
-                                style={{ paddingLeft: "2.5rem" }}
+                                style={{ paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
                                 placeholder="Minimum 6 characters"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((v) => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                style={{ color: "var(--color-text-muted)" }}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
                         </div>
                     </div>
                     <div>
@@ -194,15 +212,45 @@ export default function SignupPage() {
                                 style={{ color: "var(--color-text-muted)" }}
                             />
                             <input
-                                type="password"
+                                type={showConfirmPassword ? "text" : "password"}
                                 className="input-field"
-                                style={{ paddingLeft: "2.5rem" }}
+                                style={{ paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
                                 placeholder="••••••••"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword((v) => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                style={{ color: "var(--color-text-muted)" }}
+                                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                tabIndex={-1}
+                            >
+                                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
                         </div>
+                    </div>
+
+                    <div className="card card-compact flex items-center justify-between gap-3" style={{ background: "var(--color-bg-secondary)" }}>
+                        <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                            Keep me updated on new features and improvements
+                        </span>
+                        <div
+                            className={`toggle flex-shrink-0 ${marketingConsent ? "active" : ""}`}
+                            onClick={() => setMarketingConsent((v) => !v)}
+                            role="checkbox"
+                            aria-checked={marketingConsent}
+                            aria-label="Keep me updated on new features and improvements"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setMarketingConsent((v) => !v);
+                                }
+                            }}
+                        />
                     </div>
 
                     <button

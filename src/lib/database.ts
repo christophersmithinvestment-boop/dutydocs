@@ -146,6 +146,30 @@ export async function migrateFromLocalStorage(module: string, storeKey: string):
     }
 }
 
+// ─── Load every record for the user, grouped by module ────────────
+// One query instead of one per module — used by the dashboard, which
+// needs counts/recent-activity across all modules at once.
+export async function loadAllModuleRecords(): Promise<Record<string, Record<string, unknown>[]>> {
+    const userId = await getUserId();
+    if (!userId) return {};
+
+    const { data, error } = await supabase
+        .from("records")
+        .select("module, data")
+        .eq("user_id", userId);
+
+    if (error) {
+        console.error("[DutyDocs] Failed to load all records:", error.message);
+        return {};
+    }
+
+    const grouped: Record<string, Record<string, unknown>[]> = {};
+    for (const row of data || []) {
+        (grouped[row.module] ??= []).push(row.data as Record<string, unknown>);
+    }
+    return grouped;
+}
+
 // ─── Get total count of all records across all modules ───────────────
 export async function getTotalRecordCount(): Promise<number> {
     const userId = await getUserId();
