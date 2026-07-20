@@ -23,6 +23,7 @@ import {
     Phone,
     Crown,
     Zap,
+    Bug,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -219,6 +220,15 @@ export function Sidebar({ className }: { className?: string }) {
                 >
                     <Settings size={18} strokeWidth={1.6} />
                     <span>Settings</span>
+                </Link>
+
+                <Link
+                    href="/report-bug"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+                    style={{ color: "var(--color-text-muted)" }}
+                >
+                    <Bug size={18} strokeWidth={1.6} />
+                    <span>Report a Bug</span>
                 </Link>
             </div>
 
