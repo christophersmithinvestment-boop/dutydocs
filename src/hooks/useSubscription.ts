@@ -19,6 +19,14 @@ export const MASTER_EMAILS = [
     "hello@dutydocsapp.com",
 ];
 
+// TEMP: dev override for testing — remove before wider rollout.
+// Grants full access to all modules for these accounts only. Everyone
+// else continues to resolve through `plan` (Stripe -> user_metadata).
+// To remove: delete this array and the `isTempTestEmail` term on `isPro`.
+const TEMP_TEST_EMAILS = [
+    "bianca.byrne1@icloud.com",
+];
+
 // Launch mode: billing is not live yet. upgrade() collects waitlist
 // interest by email instead of opening Stripe checkout. To re-enable
 // billing, restore the /api/stripe/checkout call below.
@@ -30,9 +38,11 @@ export function useSubscription() {
 
     const userEmail = user?.email?.toLowerCase() || "";
     const isMasterEmail = MASTER_EMAILS.includes(userEmail);
+    // TEMP: dev override for testing — remove before wider rollout.
+    const isTempTestEmail = TEMP_TEST_EMAILS.includes(userEmail);
 
     const plan = user?.user_metadata?.plan || "starter";
-    const isPro = plan === "pro" || isMasterEmail;
+    const isPro = plan === "pro" || isMasterEmail || isTempTestEmail;
     const isStarter = !isPro;
     const stripeCustomerId = user?.user_metadata?.stripe_customer_id || null;
 
