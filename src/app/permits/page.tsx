@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, ShieldCheck, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
@@ -140,7 +140,7 @@ export default function PermitsPage() {
         pdf.addKeyValue("Isolation Required", item.isolationRequired);
         pdf.addKeyValue("Gas Test Required", item.gasTestRequired);
         pdf.addKeyValue("Rescue Plan in Place", item.rescuePlanInPlace);
-        const slug = item.permitType.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.permitType);
         pdf.save(`permit-${slug}-${item.id.split("-")[0]}.pdf`);
     };
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Megaphone, ArrowLeft, Trash2, Users, FileDown, X as LucideX, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
@@ -124,14 +124,16 @@ export default function ToolboxTalksPage() {
         pdf.addSection("Key Points");
         pdf.addTextBlock("Points Covered", item.keyPoints);
         pdf.addSection("Attendees");
-        if (item.attendees.length > 0) {
+        // Stored records are unvalidated JSONB, so attendees can be absent
+        // on older rows even though the type declares it required.
+        if (item.attendees?.length) {
             pdf.addTable(
                 ["#", "Name"],
                 item.attendees.map((a, i) => [String(i + 1), a]),
                 [15, 155]
             );
         }
-        const slug = item.topic.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.topic);
         pdf.save(`toolbox-talk-${slug}.pdf`);
     };
 

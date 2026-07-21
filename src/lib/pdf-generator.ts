@@ -157,9 +157,12 @@ export class DutyDocsPDF {
     }
 
     // ── Risk badge ──────────────────────────────────────────────────
-    addRiskBadge(label: string, level: string, score?: number) {
+    addRiskBadge(label: string, level: string | undefined, score?: number) {
         this.checkPageBreak(10);
-        const color = this.riskColor(level);
+        // Records are JSONB with optional fields, so level may be missing —
+        // render "NOT SET" rather than throwing and killing the whole export.
+        const safeLevel = level || "";
+        const color = this.riskColor(safeLevel);
 
         this.doc.setFontSize(9);
         this.doc.setFont("helvetica", "bold");
@@ -168,7 +171,9 @@ export class DutyDocsPDF {
 
         const labelW = this.doc.getTextWidth(`${label}: `) + 2;
         // Badge background
-        const badgeText = score !== undefined ? `${level.toUpperCase()} (${score})` : level.toUpperCase();
+        const levelText = safeLevel ? safeLevel.toUpperCase() : "NOT SET";
+        const hasScore = typeof score === "number" && Number.isFinite(score);
+        const badgeText = hasScore ? `${levelText} (${score})` : levelText;
         const badgeW = this.doc.getTextWidth(badgeText) + 6;
         this.doc.setFillColor(...color);
         this.doc.roundedRect(this.margin + labelW, this.y - 4, badgeW, 6, 1.5, 1.5, "F");
@@ -179,9 +184,11 @@ export class DutyDocsPDF {
     }
 
     // ── Status badge ────────────────────────────────────────────────
-    addStatusBadge(label: string, status: string) {
+    addStatusBadge(label: string, status: string | undefined) {
         this.checkPageBreak(10);
-        const color = this.statusColor(status);
+        // See addRiskBadge — status is optional on stored records.
+        const safeStatus = status || "";
+        const color = this.statusColor(safeStatus);
 
         this.doc.setFontSize(9);
         this.doc.setFont("helvetica", "bold");
@@ -189,7 +196,7 @@ export class DutyDocsPDF {
         this.doc.text(`${label}:`, this.margin, this.y);
 
         const labelW = this.doc.getTextWidth(`${label}: `) + 2;
-        const badgeText = status.toUpperCase();
+        const badgeText = safeStatus ? safeStatus.toUpperCase() : "NOT SET";
         const badgeW = this.doc.getTextWidth(badgeText) + 6;
         this.doc.setFillColor(...color);
         this.doc.roundedRect(this.margin + labelW, this.y - 4, badgeW, 6, 1.5, 1.5, "F");
@@ -338,6 +345,20 @@ export class DutyDocsPDF {
                 return BRAND.grey;
         }
     }
+}
+
+// ── Convenience: filename-safe slug ──────────────────────────────
+// Tolerates undefined/empty source fields (records are JSONB with optional
+// fields) and strips punctuation, so values like "Hot Work / Welding" can't
+// put a path separator into the download filename.
+export function pdfSlug(value: string | undefined, fallback: string = "record"): string {
+    const slug = (value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 30)
+        .replace(/-+$/g, "");
+    return slug || fallback;
 }
 
 // ── Convenience: format date for PDF ─────────────────────────────

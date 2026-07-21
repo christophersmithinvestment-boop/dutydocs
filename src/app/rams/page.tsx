@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, FileText, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
@@ -195,7 +195,7 @@ export default function MethodStatementPage() {
         pdf.addTextBlock("Plant, Equipment & Materials", item.plantEquipment);
         pdf.addSection("Emergency Procedures");
         pdf.addTextBlock("Procedures", item.emergencyProcedures);
-        const slug = item.taskTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.taskTitle);
         pdf.save(`method-statement-${slug}.pdf`);
     };
 

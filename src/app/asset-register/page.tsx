@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Package, ArrowLeft, Trash2, AlertCircle, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
@@ -133,7 +133,7 @@ export default function AssetRegisterPage() {
         pdf.addStatusBadge("Condition", item.condition);
         pdf.addKeyValue("Assigned To", item.assignedTo);
         pdf.addTextBlock("Notes", item.notes);
-        const slug = item.assetName.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.assetName);
         pdf.save(`asset-${slug}.pdf`);
     };
 

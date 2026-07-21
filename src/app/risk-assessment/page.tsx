@@ -10,7 +10,7 @@ import {
     FileDown,
     Pencil,
 } from "lucide-react";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
@@ -175,7 +175,7 @@ export default function RiskAssessmentPage() {
         pdf.addKeyValue("Residual Likelihood", item.residualLikelihood);
         pdf.addKeyValue("Residual Severity", item.residualSeverity);
         pdf.addRiskBadge("Residual Risk", item.residualRiskLevel, item.residualLikelihood * item.residualSeverity);
-        const slug = item.title.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.title);
         pdf.save(`risk-assessment-${slug}.pdf`);
     };
 

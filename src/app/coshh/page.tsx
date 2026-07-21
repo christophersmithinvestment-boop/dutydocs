@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, FlaskConical, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
@@ -162,7 +162,7 @@ export default function COSHHPage() {
         pdf.addSection("Emergency & Storage");
         pdf.addTextBlock("Emergency Procedures", item.emergencyProcedures);
         pdf.addTextBlock("Storage Requirements", item.storageRequirements);
-        const slug = item.substanceName.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.substanceName);
         pdf.save(`coshh-${slug}.pdf`);
     };
 

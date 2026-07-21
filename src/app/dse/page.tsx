@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Monitor, ArrowLeft, Trash2, Check, X, Minus, FileDown, Pencil } from "lucide-react";
 import { generateId, formatDate } from "@/lib/utils";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
@@ -224,13 +224,14 @@ export default function DSEPage() {
         pdf.addKeyValue("Assessor", item.assessorName);
         pdf.addKeyValue("Date", pdfDate(item.date));
         pdf.addKeyValue("Score", `${item.score}%`);
-        for (const cat of item.categories) {
-            pdf.addChecklistTable(cat.name, cat.items.map((i) => ({ label: i.label, status: i.status, notes: i.notes })));
+        // Stored records are unvalidated JSONB — tolerate missing categories.
+        for (const cat of item.categories ?? []) {
+            pdf.addChecklistTable(cat.name, (cat.items ?? []).map((i) => ({ label: i.label, status: i.status, notes: i.notes })));
         }
         pdf.addSection("Additional Notes & Actions");
         pdf.addTextBlock("Additional Notes", item.additionalNotes);
         pdf.addTextBlock("Action Required", item.actionRequired);
-        const slug = item.employeeName.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.employeeName);
         pdf.save(`dse-assessment-${slug}.pdf`);
     };
 

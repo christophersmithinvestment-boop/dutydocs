@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Dumbbell, ArrowLeft, Trash2, FileDown, Pencil } from "lucide-react";
 import { generateId, calculateRiskLevel, getRiskBadgeClass, formatDate, type RiskLevel } from "@/lib/utils";
-import { DutyDocsPDF, pdfDate } from "@/lib/pdf-generator";
+import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
@@ -152,7 +152,7 @@ export default function ManualHandlingPage() {
         pdf.addKeyValue("Residual Likelihood", item.residualLikelihood);
         pdf.addKeyValue("Residual Severity", item.residualSeverity);
         pdf.addRiskBadge("Residual Risk", item.residualRiskLevel, item.residualLikelihood * item.residualSeverity);
-        const slug = item.taskDescription.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+        const slug = pdfSlug(item.taskDescription);
         pdf.save(`manual-handling-${slug}.pdf`);
     };
 
