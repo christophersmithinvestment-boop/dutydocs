@@ -44,7 +44,8 @@ export default function ToolboxTalksPage() {
         importData
     } = useModuleData<ToolboxTalk & { title: string }>({
         module: "toolbox_talks",
-        storeKey: "toolbox_talks"
+        storeKey: "toolbox_talks",
+        entityLabel: "toolbox talk"
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
@@ -110,7 +111,6 @@ export default function ToolboxTalksPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Record deleted", "info");
     };
 
     const handleExportPDF = (item: ToolboxTalk) => {

@@ -111,7 +111,6 @@ export default function TrainingRecordsPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Record deleted", "info");
     };
 
     const handleExportPDF = (item: TrainingRecord) => {

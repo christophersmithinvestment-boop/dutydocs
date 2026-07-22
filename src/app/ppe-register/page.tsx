@@ -108,7 +108,6 @@ export default function PPERegisterPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Item removed", "info");
     };
 
     const handleExportPDF = (item: PPERecord) => {

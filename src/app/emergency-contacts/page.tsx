@@ -114,7 +114,6 @@ export default function EmergencyContactsPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Contact deleted", "info");
     };
 
     const categoryColor = (cat: string) => {

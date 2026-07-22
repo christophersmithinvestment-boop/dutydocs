@@ -120,7 +120,6 @@ export default function ManualHandlingPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Assessment deleted", "info");
     };
 
     const handleExportPDF = (item: ManualHandlingAssessment) => {

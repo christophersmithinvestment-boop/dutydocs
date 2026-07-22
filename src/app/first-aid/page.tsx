@@ -104,7 +104,6 @@ export default function FirstAidPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Entry deleted", "info");
     };
 
     const handleExportPDF = (item: FirstAidEntry) => {

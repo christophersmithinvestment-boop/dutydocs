@@ -112,7 +112,6 @@ export default function AssetRegisterPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Asset removed", "info");
     };
 
     const handleExportPDF = (item: AssetRecord) => {

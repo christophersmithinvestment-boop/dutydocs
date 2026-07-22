@@ -170,7 +170,6 @@ export default function MethodStatementPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Method statement deleted", "info");
     };
 
     const handleExportPDF = (item: MethodStatement) => {

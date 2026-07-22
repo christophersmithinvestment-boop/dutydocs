@@ -109,7 +109,6 @@ export default function FireDrillPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Drill record deleted", "info");
     };
 
     const handleExportPDF = (item: FireDrill) => {

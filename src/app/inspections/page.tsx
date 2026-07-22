@@ -88,7 +88,8 @@ export default function InspectionsPage() {
         importData
     } = useModuleData<Inspection & { title: string }>({
         module: "inspections",
-        storeKey: "inspections"
+        storeKey: "inspections",
+        entityLabel: "inspection"
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
@@ -233,7 +234,6 @@ export default function InspectionsPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Inspection deleted", "info");
     };
 
     const handleExportPDF = (item: Inspection) => {

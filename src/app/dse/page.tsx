@@ -122,7 +122,8 @@ export default function DSEPage() {
         importData
     } = useModuleData<DSEAssessment & { title: string }>({
         module: "dse_assessments",
-        storeKey: "dse_assessments"
+        storeKey: "dse_assessments",
+        entityLabel: "DSE assessment"
     });
     const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
@@ -211,7 +212,6 @@ export default function DSEPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Assessment deleted", "info");
     };
 
     const handleExportPDF = (item: DSEAssessment) => {

@@ -62,7 +62,8 @@ export default function COSHHPage() {
         importData
     } = useModuleData<COSHHAssessment & { title: string }>({
         module: "coshh_assessments",
-        storeKey: "coshh_assessments"
+        storeKey: "coshh_assessments",
+        entityLabel: "COSHH assessment"
     });
     const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
@@ -138,7 +139,6 @@ export default function COSHHPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Assessment deleted", "info");
     };
 
     const handleExportPDF = (item: COSHHAssessment) => {

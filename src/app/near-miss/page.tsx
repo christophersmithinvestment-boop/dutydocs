@@ -46,7 +46,8 @@ export default function NearMissPage() {
         importData
     } = useModuleData<NearMiss & { title: string }>({
         module: "near_misses",
-        storeKey: "near_misses"
+        storeKey: "near_misses",
+        entityLabel: "near miss report"
     });
     const { isLimitReached } = useSubscription();
     const { showToast } = useToast();
@@ -110,7 +111,6 @@ export default function NearMissPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Report deleted", "info");
     };
 
     const handleExportPDF = (item: NearMiss) => {

@@ -5,14 +5,23 @@ import { loadRecords, saveRecord, deleteRecord, updateRecord, migrateFromLocalSt
 import { loadFromStore, saveToStore, isClient } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { exportToCSV, importFromCSV } from "@/lib/csv";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 
 interface UseModuleDataOptions {
     module: string;       // Supabase module name (e.g. "risk_assessments")
     storeKey: string;     // localStorage key (e.g. "risk_assessments")
+    /**
+     * Singular, lower-case name for one record, used in the delete
+     * confirmation ("Delete this DSE assessment?"). Defaults to "record".
+     */
+    entityLabel?: string;
 }
 
 export function useModuleData<T extends { id: string; title?: string; status?: string }>(options: UseModuleDataOptions) {
-    const { module, storeKey } = options;
+    const { module, storeKey, entityLabel = "record" } = options;
+    const confirm = useConfirm();
+    const { showToast } = useToast();
     const [items, setItems] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
     const [totalRecords, setTotalRecords] = useState(0);
@@ -79,17 +88,33 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
 
     // ─── Delete a record ──────────────────────────────────────────
     const removeItem = useCallback(async (id: string) => {
-        if (!window.confirm("Delete this record? This cannot be undone.")) return;
+        const confirmed = await confirm({
+            title: `Delete this ${entityLabel}?`,
+            message: "This can't be undone.",
+            confirmLabel: "Delete",
+        });
+        if (!confirmed) return;
+
+        // Optimistic removal, rolled back if the delete fails.
+        const previousItems = items;
         const updated = items.filter((i) => i.id !== id);
         setItems(updated);
-        setTotalRecords(prev => Math.max(0, prev - 1));
 
-        if (isSupabaseConfigured) {
-            await deleteRecord(module, id);
-        } else {
-            saveToStore(storeKey, updated);
+        try {
+            if (isSupabaseConfigured) {
+                await deleteRecord(module, id);
+            } else {
+                saveToStore(storeKey, updated);
+            }
+            setTotalRecords(prev => Math.max(0, prev - 1));
+            showToast(`${entityLabel[0].toUpperCase()}${entityLabel.slice(1)} deleted`, "success");
+        } catch (error) {
+            setItems(previousItems);
+            const message = error instanceof Error ? error.message : "Please try again.";
+            console.error(`[DutyDocs] Delete failed for ${module}:`, error);
+            showToast(`Couldn't delete: ${message}`, "error");
         }
-    }, [items, module, storeKey]);
+    }, [items, module, storeKey, entityLabel, confirm, showToast]);
 
     // ─── Update a record ──────────────────────────────────────────
     const editItem = useCallback(async (id: string, updatedItem: T) => {

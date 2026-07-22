@@ -53,7 +53,7 @@ export default function IncidentsPage() {
         editItem,
         exportData,
         importData
-    } = useModuleData<Incident & { title: string }>({ module: "incidents", storeKey: "incidents" });
+    } = useModuleData<Incident & { title: string }>({ module: "incidents", storeKey: "incidents", entityLabel: "incident report" });
     const { isLimitReached } = useSubscription();
     const [showForm, setShowForm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -128,7 +128,6 @@ export default function IncidentsPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Incident report deleted", "info");
     };
 
     const handleExportPDF = (item: Incident) => {

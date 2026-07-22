@@ -119,7 +119,6 @@ export default function PermitsPage() {
 
     const handleDelete = (id: string) => {
         removeItem(id);
-        showToast("Permit deleted", "info");
     };
 
     const handleExportPDF = (item: Permit) => {

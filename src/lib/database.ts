@@ -52,25 +52,32 @@ export async function saveRecord<T extends { id: string }>(
 }
 
 // ─── Delete a record by its data.id ───────────────────────────────
+// Throws on failure so callers can surface it — a delete that silently
+// no-ops leaves the row on screen removed but still in the database.
 export async function deleteRecord(module: string, recordId: string): Promise<boolean> {
     const userId = await getUserId();
-    if (!userId) return false;
+    if (!userId) throw new Error("You appear to be signed out. Sign in and try again.");
 
     // Find the DB row that contains this record ID
-    const { data: rows } = await supabase
+    const { data: rows, error: lookupError } = await supabase
         .from("records")
         .select("id, data")
         .eq("user_id", userId)
         .eq("module", module);
 
+    if (lookupError) {
+        console.error(`[DutyDocs] Failed to look up ${module} record:`, lookupError.message);
+        throw new Error(lookupError.message);
+    }
+
     const row = (rows || []).find((r) => r.data?.id === recordId);
-    if (!row) return false;
+    if (!row) throw new Error("That record no longer exists.");
 
     const { error } = await supabase.from("records").delete().eq("id", row.id);
 
     if (error) {
         console.error(`[DutyDocs] Failed to delete:`, error.message);
-        return false;
+        throw new Error(error.message);
     }
     return true;
 }
