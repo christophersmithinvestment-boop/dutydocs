@@ -41,8 +41,15 @@ export function UsageProvider({ children }: { children: ReactNode }) {
     const [totalRecords, setTotalRecords] = useState(0);
 
     const refreshUsage = useCallback(async () => {
-        const count = isSupabaseConfigured ? await getTotalRecordCount() : countLocalRecords();
-        setTotalRecords(count);
+        try {
+            const count = isSupabaseConfigured ? await getTotalRecordCount() : countLocalRecords();
+            setTotalRecords(count);
+        } catch (error) {
+            // Keep the last known figure rather than dropping to 0, which
+            // would misreport usage as empty. The caller that triggered the
+            // load surfaces the error itself.
+            console.error("[DutyDocs] Failed to refresh usage:", error);
+        }
     }, []);
 
     const adjustUsage = useCallback((delta: number) => {

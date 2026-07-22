@@ -9,6 +9,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
 import { ModuleToolbar } from "@/components/ModuleToolbar";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { LoadError } from "@/components/ui/LoadError";
 import { useToast } from "@/components/ui/Toast";
 
 // A method statement is the "how the work will be carried out safely"
@@ -69,6 +70,8 @@ export default function MethodStatementPage() {
         statusFilter,
         setStatusFilter,
         loading,
+        loadError,
+        refreshData,
         totalRecords,
         addItem,
         removeItem,
@@ -348,6 +351,8 @@ export default function MethodStatementPage() {
                     <RecordSkeleton />
                     <RecordSkeleton />
                 </div>
+            ) : loadError ? (
+                <LoadError message={loadError} onRetry={refreshData} />
             ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <FileText size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />

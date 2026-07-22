@@ -25,13 +25,18 @@ export function saveToStore<T>(key: string, data: T): void {
   }
 }
 
+// Distinguishes "nothing saved yet" from "saved data is unreadable".
+// Returning the fallback for both made a corrupted module look identical
+// to an empty one, with no sign anything had gone wrong.
 export function loadFromStore<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
+  const item = localStorage.getItem(`hs_${key}`);
+  if (item === null || item === "") return fallback;
   try {
-    const item = localStorage.getItem(`hs_${key}`);
-    return item ? JSON.parse(item) : fallback;
-  } catch {
-    return fallback;
+    return JSON.parse(item) as T;
+  } catch (e) {
+    console.error(`[DutyDocs] Corrupted data in hs_${key}:`, e);
+    throw new Error("Saved data on this device is corrupted and couldn't be read.");
   }
 }
 

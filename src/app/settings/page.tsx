@@ -7,9 +7,17 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useSearchParams } from "next/navigation";
 import { TeamInviteModal } from "@/components/TeamInviteModal";
 import { getTeamMembers, TeamMember } from "@/lib/teams";
+import { deleteAllRecords } from "@/lib/database";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
+import { useUsage } from "@/components/UsageProvider";
 
 export default function SettingsPage() {
-    const [showConfirm, setShowConfirm] = useState(false);
+    const [clearing, setClearing] = useState(false);
+    const confirm = useConfirm();
+    const { showToast } = useToast();
+    const { totalRecords, refreshUsage } = useUsage();
     const { user, signOut } = useAuth();
     const { isPro, isStarter, upgrade, manageSubscription } = useSubscription();
     const searchParams = useSearchParams();
@@ -29,12 +37,42 @@ export default function SettingsPage() {
         }
     }, [isPro]);
 
-    const clearAllData = () => {
+    // Previously this only cleared localStorage and reloaded. On a cloud
+    // account that deleted nothing, the records came straight back, and the
+    // reload made it look like the action had simply done nothing.
+    const clearAllData = async () => {
         if (typeof window === "undefined") return;
-        const keys = Object.keys(localStorage).filter((k) => k.startsWith("hs_"));
-        keys.forEach((k) => localStorage.removeItem(k));
-        setShowConfirm(false);
-        window.location.reload();
+
+        const scope = isSupabaseConfigured
+            ? `all ${totalRecords} record${totalRecords === 1 ? "" : "s"} on your account`
+            : "all records saved on this device";
+
+        const confirmed = await confirm({
+            title: "Delete everything?",
+            message: `This permanently deletes ${scope}, including assessments, reports and registers. This can't be undone.`,
+            confirmLabel: "Delete everything",
+        });
+        if (!confirmed) return;
+
+        setClearing(true);
+        try {
+            if (isSupabaseConfigured) {
+                await deleteAllRecords();
+            }
+            // Clear the local cache either way so nothing stale is left behind.
+            Object.keys(localStorage)
+                .filter((k) => k.startsWith("hs_"))
+                .forEach((k) => localStorage.removeItem(k));
+
+            await refreshUsage();
+            showToast("All records deleted", "success");
+            window.location.reload();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Please try again.";
+            console.error("[DutyDocs] Clear all data failed:", error);
+            showToast(`Couldn't delete your records: ${message}`, "error");
+            setClearing(false);
+        }
     };
 
     const getDataSize = () => {
@@ -233,12 +271,23 @@ export default function SettingsPage() {
             <div className="mb-4">
                 <p className="section-header px-1">Data Management</p>
                 <div className="space-y-2">
+                    {/* On a cloud account the records live in Supabase, so
+                        localStorage bytes would read as ~0 KB no matter how
+                        much data the account actually holds. */}
                     <div className="card card-compact flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>Local Storage Used</p>
-                            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Data saved on this device</p>
+                            <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+                                {isSupabaseConfigured ? "Records Stored" : "Local Storage Used"}
+                            </p>
+                            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                {isSupabaseConfigured ? "Synced to your account" : "Data saved on this device"}
+                            </p>
                         </div>
-                        <span className="badge badge-blue">{getDataSize()}</span>
+                        <span className="badge badge-blue">
+                            {isSupabaseConfigured
+                                ? `${totalRecords} record${totalRecords === 1 ? "" : "s"}`
+                                : getDataSize()}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -254,20 +303,14 @@ export default function SettingsPage() {
                                 Permanently delete all assessments, reports, and records
                             </p>
                         </div>
-                        {!showConfirm ? (
-                            <button onClick={() => setShowConfirm(true)} className="btn btn-danger" style={{ padding: "0.5rem 1rem" }}>
-                                <Trash2 size={14} /> Clear
-                            </button>
-                        ) : (
-                            <div className="flex gap-2">
-                                <button onClick={clearAllData} className="btn btn-danger" style={{ padding: "0.5rem 1rem", fontSize: "12px" }}>
-                                    Confirm Delete
-                                </button>
-                                <button onClick={() => setShowConfirm(false)} className="btn btn-secondary" style={{ padding: "0.5rem 1rem", fontSize: "12px" }}>
-                                    Cancel
-                                </button>
-                            </div>
-                        )}
+                        <button
+                            onClick={clearAllData}
+                            disabled={clearing}
+                            className="btn btn-danger"
+                            style={{ padding: "0.5rem 1rem", opacity: clearing ? 0.6 : undefined }}
+                        >
+                            <Trash2 size={14} /> {clearing ? "Deleting…" : "Clear"}
+                        </button>
                     </div>
                 </div>
             </div>

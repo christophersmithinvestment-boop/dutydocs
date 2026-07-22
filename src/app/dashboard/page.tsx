@@ -76,6 +76,7 @@ export default function DashboardPage() {
     complianceScore: 100,
   });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     type WithId = { id: string; createdAt: string };
@@ -163,7 +164,12 @@ export default function DashboardPage() {
       setRecentActivity(allItems.slice(0, 10));
     };
 
-    gatherStats();
+    // Without this, a failed load leaves every stat at its initial 0,
+    // which looks like a brand-new account rather than a broken read.
+    gatherStats().catch((error) => {
+      console.error("[DutyDocs] Failed to build dashboard stats:", error);
+      setStatsError(error instanceof Error ? error.message : "Please try again.");
+    });
   }, []);
 
   const kpis = [
@@ -213,6 +219,23 @@ export default function DashboardPage() {
 
   return (
     <div className="px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-8 max-w-5xl mx-auto">
+      {statsError && (
+        <div
+          className="card card-compact mb-6 flex items-start gap-3"
+          style={{ borderColor: "rgba(239,68,68,0.35)" }}
+        >
+          <AlertTriangle size={18} style={{ color: "var(--color-safety-red)", flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+              Couldn&apos;t load your dashboard data
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+              {statsError} The figures below may be incomplete.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

@@ -16,6 +16,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
 import { ModuleToolbar } from "@/components/ModuleToolbar";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { LoadError } from "@/components/ui/LoadError";
 import {
     generateId,
     calculateRiskLevel,
@@ -56,6 +57,8 @@ export default function RiskAssessmentPage() {
         statusFilter,
         setStatusFilter,
         loading,
+        loadError,
+        refreshData,
         totalRecords,
         addItem,
         removeItem,
@@ -347,6 +350,8 @@ export default function RiskAssessmentPage() {
                     <RecordSkeleton />
                     <RecordSkeleton />
                 </div>
+            ) : loadError ? (
+                <LoadError message={loadError} onRetry={refreshData} />
             ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <ClipboardCheck size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />

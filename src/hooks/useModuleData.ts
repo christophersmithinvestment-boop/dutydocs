@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { loadRecords, saveRecord, deleteRecord, updateRecord, migrateFromLocalStorage } from "@/lib/database";
+import { loadRecords, saveRecord, saveRecords, deleteRecord, updateRecord, migrateFromLocalStorage } from "@/lib/database";
 import { loadFromStore, saveToStore } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { exportToCSV, importFromCSV } from "@/lib/csv";
@@ -27,6 +27,7 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
     const { totalRecords, refreshUsage, adjustUsage } = useUsage();
     const [items, setItems] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -42,19 +43,31 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
 
     // ─── Load data ──────────────────────────────────────────────────
     const refreshData = useCallback(async () => {
-        if (isSupabaseConfigured) {
-            // Try migrating localStorage data first (one-time)
-            await migrateFromLocalStorage(module, storeKey);
-            const records = await loadRecords<T>(module);
-            setItems(records);
-        } else {
-            // Fallback to localStorage
-            setItems(loadFromStore<T[]>(storeKey, []));
+        setLoading(true);
+        setLoadError(null);
+        try {
+            if (isSupabaseConfigured) {
+                // Try migrating localStorage data first (one-time)
+                await migrateFromLocalStorage(module, storeKey);
+                const records = await loadRecords<T>(module);
+                setItems(records);
+            } else {
+                // Fallback to localStorage
+                setItems(loadFromStore<T[]>(storeKey, []));
+            }
+            // Migration can change the account-wide total, so re-read it.
+            await refreshUsage();
+        } catch (error) {
+            // Surface the failure instead of rendering an empty module,
+            // which would read as "you have no records".
+            const message = error instanceof Error ? error.message : "Please try again.";
+            console.error(`[DutyDocs] Load failed for ${module}:`, error);
+            setItems([]);
+            setLoadError(message);
+            showToast(`Couldn't load records: ${message}`, "error");
         }
-        // Migration can change the account-wide total, so re-read it.
-        await refreshUsage();
         setLoading(false);
-    }, [module, storeKey, refreshUsage]);
+    }, [module, storeKey, refreshUsage, showToast]);
 
     useEffect(() => {
         refreshData();
@@ -80,6 +93,33 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
             setItems(previousItems);
             const message = error instanceof Error ? error.message : "Please try again.";
             console.error(`[DutyDocs] Save failed for ${module}:`, error);
+            showToast(`Couldn't save: ${message}`, "error");
+            return false;
+        }
+    }, [items, module, storeKey, showToast, adjustUsage]);
+
+    // ─── Add several records in one go ─────────────────────────────
+    // Calling addItem in a loop doesn't work: every iteration closes over
+    // the same `items` snapshot, so in localStorage mode each write
+    // overwrites the last and only the final record survives.
+    const addItems = useCallback(async (newItems: T[]): Promise<boolean> => {
+        if (!newItems.length) return true;
+        const previousItems = items;
+        const updated = [...newItems, ...items];
+        setItems(updated);
+
+        try {
+            if (isSupabaseConfigured) {
+                await saveRecords(module, newItems);
+            } else {
+                saveToStore(storeKey, updated);
+            }
+            adjustUsage(newItems.length);
+            return true;
+        } catch (error) {
+            setItems(previousItems);
+            const message = error instanceof Error ? error.message : "Please try again.";
+            console.error(`[DutyDocs] Batch save failed for ${module}:`, error);
             showToast(`Couldn't save: ${message}`, "error");
             return false;
         }
@@ -192,8 +232,10 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
         statusFilter,
         setStatusFilter,
         loading,
+        loadError,
         totalRecords,
         addItem,
+        addItems,
         removeItem,
         editItem,
         setAllItems,

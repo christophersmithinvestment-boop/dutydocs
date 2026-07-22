@@ -8,6 +8,7 @@ import { useModuleData } from "@/hooks/useModuleData";
 import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { LoadError } from "@/components/ui/LoadError";
 import { useToast } from "@/components/ui/Toast";
 import { ModuleToolbar } from "@/components/ModuleToolbar";
 
@@ -38,6 +39,8 @@ export default function NearMissPage() {
         statusFilter,
         setStatusFilter,
         loading,
+        loadError,
+        refreshData,
         totalRecords,
         addItem,
         removeItem,
@@ -238,6 +241,8 @@ export default function NearMissPage() {
 
             {loading ? (
                 <RecordSkeleton count={3} />
+            ) : loadError ? (
+                <LoadError message={loadError} onRetry={refreshData} />
             ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <TriangleAlert size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />

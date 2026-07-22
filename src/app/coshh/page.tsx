@@ -9,6 +9,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import UpgradeModal from "@/components/UpgradeModal";
 import { ModuleToolbar } from "@/components/ModuleToolbar";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { LoadError } from "@/components/ui/LoadError";
 import { useToast } from "@/components/ui/Toast";
 
 interface COSHHAssessment {
@@ -54,6 +55,8 @@ export default function COSHHPage() {
         statusFilter,
         setStatusFilter,
         loading,
+        loadError,
+        refreshData,
         totalRecords,
         addItem,
         removeItem,
@@ -336,6 +339,8 @@ export default function COSHHPage() {
                     <RecordSkeleton />
                     <RecordSkeleton />
                 </div>
+            ) : loadError ? (
+                <LoadError message={loadError} onRetry={refreshData} />
             ) : filteredItems.length === 0 ? (
                 <div className="empty-state">
                     <FlaskConical size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />

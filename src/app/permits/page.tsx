@@ -7,6 +7,7 @@ import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { LoadError } from "@/components/ui/LoadError";
 import { useToast } from "@/components/ui/Toast";
 import { ModuleToolbar } from "@/components/ModuleToolbar";
 
@@ -46,6 +47,8 @@ export default function PermitsPage() {
         statusFilter,
         setStatusFilter,
         loading,
+        loadError,
+        refreshData,
         addItem,
         removeItem,
         editItem,
@@ -290,6 +293,8 @@ export default function PermitsPage() {
 
                 {loading ? (
                     <RecordSkeleton count={3} />
+                ) : loadError ? (
+                    <LoadError message={loadError} onRetry={refreshData} />
                 ) : filteredItems.length === 0 ? (
                     <div className="empty-state">
                         <ShieldCheck size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />

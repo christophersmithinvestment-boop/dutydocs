@@ -19,9 +19,11 @@ export async function loadRecords<T>(module: string): Promise<T[]> {
         .eq("module", module)
         .order("created_at", { ascending: false });
 
+    // Throws rather than returning [] — an empty array here is
+    // indistinguishable from a module the user hasn't used yet.
     if (error) {
         console.error(`[DutyDocs] Failed to load ${module}:`, error.message);
-        return [];
+        throw new Error(error.message);
     }
 
     return (data || []).map((row) => ({
@@ -82,6 +84,46 @@ export async function deleteRecord(module: string, recordId: string): Promise<bo
         throw new Error(error.message);
     }
     return true;
+}
+
+// ─── Save several records in one insert ───────────────────────────
+export async function saveRecords<T extends { id: string }>(
+    module: string,
+    records: T[]
+): Promise<boolean> {
+    if (!records.length) return true;
+    const userId = await getUserId();
+    if (!userId) throw new Error("You appear to be signed out. Sign in and try again.");
+
+    const { error } = await supabase.from("records").insert(
+        records.map((record) => ({ user_id: userId, module, data: record }))
+    );
+
+    if (error) {
+        console.error(`[DutyDocs] Failed to save ${module} batch:`, error.message);
+        throw new Error(error.message);
+    }
+    return true;
+}
+
+// ─── Delete every record on the account ───────────────────────────
+// Used by Settings → Clear All Data. RLS scopes deletes to the signed-in
+// user, and the explicit user_id filter keeps that true client-side too.
+// Returns how many rows were removed; throws on failure.
+export async function deleteAllRecords(): Promise<number> {
+    const userId = await getUserId();
+    if (!userId) throw new Error("You appear to be signed out. Sign in and try again.");
+
+    const { count, error } = await supabase
+        .from("records")
+        .delete({ count: "exact" })
+        .eq("user_id", userId);
+
+    if (error) {
+        console.error("[DutyDocs] Failed to clear all records:", error.message);
+        throw new Error(error.message);
+    }
+    return count ?? 0;
 }
 
 // ─── Update a record (for status changes, permits, etc.) ──────────
@@ -173,9 +215,11 @@ export async function loadAllModuleRecords(): Promise<Record<string, Record<stri
         .select("module, data")
         .eq("user_id", userId);
 
+    // Throws rather than returning {} — that made the dashboard render
+    // every stat as zero, which reads as "no data" not "load failed".
     if (error) {
         console.error("[DutyDocs] Failed to load all records:", error.message);
-        return {};
+        throw new Error(error.message);
     }
 
     const grouped: Record<string, Record<string, unknown>[]> = {};
@@ -195,9 +239,11 @@ export async function getTotalRecordCount(): Promise<number> {
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
 
+    // Throws rather than returning 0 — a failed count would otherwise
+    // render as "0/50 Records", understating real usage.
     if (error) {
         console.error("[DutyDocs] Failed to get total record count:", error.message);
-        return 0;
+        throw new Error(error.message);
     }
 
     return count || 0;

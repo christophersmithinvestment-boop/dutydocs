@@ -6,6 +6,7 @@ import { generateId } from "@/lib/utils";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
 import { RecordSkeleton } from "@/components/ui/Skeleton";
+import { LoadError } from "@/components/ui/LoadError";
 import { useToast } from "@/components/ui/Toast";
 import { ModuleToolbar } from "@/components/ModuleToolbar";
 
@@ -43,7 +44,10 @@ export default function EmergencyContactsPage() {
         statusFilter,
         setStatusFilter,
         loading,
+        loadError,
+        refreshData,
         addItem,
+        addItems,
         removeItem,
         editItem,
         exportData,
@@ -62,14 +66,17 @@ export default function EmergencyContactsPage() {
     // Pre-populate default emergency contacts if none exist
     useEffect(() => {
         if (!loading && items.length === 0) {
-            (async () => {
-                for (const c of DEFAULT_CONTACTS) {
-                    const saved = await addItem({ ...c, id: generateId(), title: c.name, createdAt: new Date().toISOString() });
-                    // Stop at the first failure rather than raising one
-                    // error toast per remaining contact.
-                    if (!saved) break;
-                }
-            })();
+            // One batched write — seeding these one-by-one meant each call
+            // reused the same empty `items` snapshot, so every contact
+            // overwrote the previous one and only the last survived.
+            addItems(
+                DEFAULT_CONTACTS.map((c) => ({
+                    ...c,
+                    id: generateId(),
+                    title: c.name,
+                    createdAt: new Date().toISOString(),
+                }))
+            );
         }
     }, [loading, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -193,6 +200,8 @@ export default function EmergencyContactsPage() {
 
                 {loading ? (
                     <RecordSkeleton count={3} />
+                ) : loadError ? (
+                    <LoadError message={loadError} onRetry={refreshData} />
                 ) : filteredItems.length === 0 ? (
                     <div className="empty-state">
                         <Phone size={40} style={{ color: "var(--color-text-muted)", marginBottom: "1rem" }} />
