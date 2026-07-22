@@ -49,7 +49,6 @@ export default function AssetRegisterPage() {
         statusFilter,
         setStatusFilter,
         loading,
-        totalRecords,
         addItem,
         removeItem,
         editItem,
@@ -252,7 +251,7 @@ export default function AssetRegisterPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Asset Register</h1>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} asset{totalRecords !== 1 ? "s" : ""} registered</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} asset{items.length !== 1 ? "s" : ""} registered</p>
                     </div>
                     <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
                 </div>

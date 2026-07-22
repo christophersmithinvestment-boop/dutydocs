@@ -28,8 +28,8 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
-import { useSubscription } from "@/hooks/useSubscription";
-import { useModuleData } from "@/hooks/useModuleData";
+import { useSubscription, MAX_FREE_RECORDS } from "@/hooks/useSubscription";
+import { useUsage } from "@/components/UsageProvider";
 import UpgradeModal from "@/components/UpgradeModal";
 
 const navGroups = [
@@ -80,7 +80,7 @@ const navGroups = [
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
     const { isPro, hasModuleAccess } = useSubscription();
-    const { totalRecords } = useModuleData({ module: "risk_assessments", storeKey: "risk_assessments" });
+    const { totalRecords } = useUsage();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     return (
@@ -197,12 +197,12 @@ export function Sidebar({ className }: { className?: string }) {
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center text-[10px] font-bold text-white">
                                     <span>Usage</span>
-                                    <span>{totalRecords}/50 Records</span>
+                                    <span>{totalRecords}/{MAX_FREE_RECORDS} Records</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-white transition-all duration-500"
-                                        style={{ width: `${Math.min(100, (totalRecords / 50) * 100)}%` }}
+                                        style={{ width: `${Math.min(100, (totalRecords / MAX_FREE_RECORDS) * 100)}%` }}
                                     />
                                 </div>
                             </div>

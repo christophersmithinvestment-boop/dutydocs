@@ -44,7 +44,6 @@ export default function ManualHandlingPage() {
         statusFilter,
         setStatusFilter,
         loading,
-        totalRecords,
         addItem,
         removeItem,
         editItem,
@@ -247,7 +246,7 @@ export default function ManualHandlingPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Manual Handling</h1>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} assessment{totalRecords !== 1 ? "s" : ""}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} assessment{items.length !== 1 ? "s" : ""}</p>
                     </div>
                     <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> New</button>
                 </div>

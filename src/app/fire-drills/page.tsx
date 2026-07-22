@@ -40,7 +40,6 @@ export default function FireDrillPage() {
         statusFilter,
         setStatusFilter,
         loading,
-        totalRecords,
         addItem,
         removeItem,
         editItem,
@@ -207,7 +206,7 @@ export default function FireDrillPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Fire Drill Log</h1>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} drill{totalRecords !== 1 ? "s" : ""} recorded</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} drill{items.length !== 1 ? "s" : ""} recorded</p>
                     </div>
                     <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Log Drill</button>
                 </div>

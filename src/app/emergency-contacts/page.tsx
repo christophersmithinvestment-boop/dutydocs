@@ -43,7 +43,6 @@ export default function EmergencyContactsPage() {
         statusFilter,
         setStatusFilter,
         loading,
-        totalRecords,
         addItem,
         removeItem,
         editItem,
@@ -170,7 +169,7 @@ export default function EmergencyContactsPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>Emergency Contacts</h1>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{totalRecords} contact{totalRecords !== 1 ? "s" : ""}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{items.length} contact{items.length !== 1 ? "s" : ""}</p>
                     </div>
                     <button onClick={() => setShowForm(true)} className="btn btn-primary"><Plus size={16} /> Add</button>
                 </div>

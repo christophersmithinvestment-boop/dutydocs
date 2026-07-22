@@ -40,10 +40,19 @@ vi.mock('@/components/ui/Toast', () => ({
     useToast: () => ({ showToast })
 }));
 
+const adjustUsage = vi.fn();
+const refreshUsage = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('@/components/UsageProvider', () => ({
+    useUsage: () => ({ totalRecords: 0, refreshUsage, adjustUsage })
+}));
+
 beforeEach(() => {
     showToast.mockClear();
     confirmSpy.mockClear();
     confirmSpy.mockResolvedValue(true);
+    adjustUsage.mockClear();
+    refreshUsage.mockClear();
     vi.mocked(saveToStore).mockReset();
 });
 
@@ -174,6 +183,37 @@ describe('useModuleData write failures', () => {
             expect.stringContaining("Couldn't delete"),
             'error'
         );
+    });
+
+    it('does not move the usage count when a save fails', async () => {
+        vi.mocked(saveToStore).mockImplementation(() => {
+            throw new Error('boom');
+        });
+
+        const { result } = renderHook(() => useModuleData({ module: 'test', storeKey: 'test' }));
+        await act(async () => { });
+
+        await act(async () => {
+            await result.current.addItem({ id: '4', title: 'New Record', status: 'active' });
+        });
+
+        expect(adjustUsage).not.toHaveBeenCalled();
+    });
+
+    it('increments usage once on a successful create and decrements on delete', async () => {
+        const { result } = renderHook(() => useModuleData({ module: 'test', storeKey: 'test' }));
+        await act(async () => { });
+
+        await act(async () => {
+            await result.current.addItem({ id: '4', title: 'New Record', status: 'active' });
+        });
+        expect(adjustUsage).toHaveBeenCalledWith(1);
+
+        adjustUsage.mockClear();
+        await act(async () => {
+            await result.current.removeItem('1');
+        });
+        expect(adjustUsage).toHaveBeenCalledWith(-1);
     });
 
     it('removeItem does nothing when the confirmation is declined', async () => {

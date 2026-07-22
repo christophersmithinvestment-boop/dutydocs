@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { loadRecords, saveRecord, deleteRecord, updateRecord, migrateFromLocalStorage, getTotalRecordCount } from "@/lib/database";
-import { loadFromStore, saveToStore, isClient } from "@/lib/utils";
+import { loadRecords, saveRecord, deleteRecord, updateRecord, migrateFromLocalStorage } from "@/lib/database";
+import { loadFromStore, saveToStore } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { exportToCSV, importFromCSV } from "@/lib/csv";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
+import { useUsage } from "@/components/UsageProvider";
 
 interface UseModuleDataOptions {
     module: string;       // Supabase module name (e.g. "risk_assessments")
@@ -22,9 +23,10 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
     const { module, storeKey, entityLabel = "record" } = options;
     const confirm = useConfirm();
     const { showToast } = useToast();
+    // Account-wide usage is shared app state, not per-instance — see UsageProvider.
+    const { totalRecords, refreshUsage, adjustUsage } = useUsage();
     const [items, setItems] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
-    const [totalRecords, setTotalRecords] = useState(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -45,29 +47,14 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
             await migrateFromLocalStorage(module, storeKey);
             const records = await loadRecords<T>(module);
             setItems(records);
-            const count = await getTotalRecordCount();
-            setTotalRecords(count);
         } else {
             // Fallback to localStorage
-            const localItems = loadFromStore<T[]>(storeKey, []);
-            setItems(localItems);
-
-            // For local storage, calc total count across all known modules
-            if (isClient()) {
-                let count = 0;
-                Object.keys(localStorage).forEach(key => {
-                    if (key.startsWith("hs_")) {
-                        try {
-                            const data = JSON.parse(localStorage.getItem(key) || "[]");
-                            if (Array.isArray(data)) count += data.length;
-                        } catch { }
-                    }
-                });
-                setTotalRecords(count);
-            }
+            setItems(loadFromStore<T[]>(storeKey, []));
         }
+        // Migration can change the account-wide total, so re-read it.
+        await refreshUsage();
         setLoading(false);
-    }, [module, storeKey]);
+    }, [module, storeKey, refreshUsage]);
 
     useEffect(() => {
         refreshData();
@@ -80,7 +67,6 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
         const previousItems = items;
         const updated = [item, ...items];
         setItems(updated);
-        setTotalRecords(prev => prev + 1);
 
         try {
             if (isSupabaseConfigured) {
@@ -88,16 +74,16 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
             } else {
                 saveToStore(storeKey, updated);
             }
+            adjustUsage(1);
             return true;
         } catch (error) {
             setItems(previousItems);
-            setTotalRecords(prev => Math.max(0, prev - 1));
             const message = error instanceof Error ? error.message : "Please try again.";
             console.error(`[DutyDocs] Save failed for ${module}:`, error);
             showToast(`Couldn't save: ${message}`, "error");
             return false;
         }
-    }, [items, module, storeKey, showToast]);
+    }, [items, module, storeKey, showToast, adjustUsage]);
 
     // ─── Delete a record ──────────────────────────────────────────
     const removeItem = useCallback(async (id: string) => {
@@ -119,7 +105,7 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
             } else {
                 saveToStore(storeKey, updated);
             }
-            setTotalRecords(prev => Math.max(0, prev - 1));
+            adjustUsage(-1);
             showToast(`${entityLabel[0].toUpperCase()}${entityLabel.slice(1)} deleted`, "success");
         } catch (error) {
             setItems(previousItems);
@@ -127,7 +113,7 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
             console.error(`[DutyDocs] Delete failed for ${module}:`, error);
             showToast(`Couldn't delete: ${message}`, "error");
         }
-    }, [items, module, storeKey, entityLabel, confirm, showToast]);
+    }, [items, module, storeKey, entityLabel, confirm, showToast, adjustUsage]);
 
     // ─── Update a record ──────────────────────────────────────────
     // Resolves false if the change could not be persisted; the previous
@@ -186,7 +172,9 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
 
                 const combined = Array.from(existingMap.values());
                 setAllItems(combined);
-                setTotalRecords(combined.length);
+                // Import changes how many records the account holds; re-read
+                // rather than assuming this module's count is the total.
+                await refreshUsage();
                 return true;
             }
             return false;
@@ -194,7 +182,7 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
             console.error("Import failed:", error);
             throw error;
         }
-    }, [items, setAllItems]);
+    }, [items, setAllItems, refreshUsage]);
 
     return {
         items,

@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
+import { UsageProvider } from "@/components/UsageProvider";
 
 const AUTH_PAGES = [
     "/login",
@@ -28,16 +29,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AuthProvider>
             <ToastProvider>
                 <ConfirmProvider>
-                    <div className="flex min-h-screen w-full overflow-hidden">
-                        {!isAuthPage && <Sidebar className="hidden md:flex" />}
+                    <UsageProvider>
+                        <div className="flex min-h-screen w-full overflow-hidden">
+                            {!isAuthPage && <Sidebar className="hidden md:flex" />}
 
-                        <main className="flex-1 overflow-y-auto min-h-dvh pb-safe md:pb-0">
-                            <div className="page-enter">{children}</div>
-                        </main>
+                            <main className="flex-1 overflow-y-auto min-h-dvh pb-safe md:pb-0">
+                                <div className="page-enter">{children}</div>
+                            </main>
 
-                        {!isAuthPage && <BottomNav />}
-                    </div>
-                    <ServiceWorkerRegistration />
+                            {!isAuthPage && <BottomNav />}
+                        </div>
+                        <ServiceWorkerRegistration />
+                    </UsageProvider>
                 </ConfirmProvider>
             </ToastProvider>
         </AuthProvider>
