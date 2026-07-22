@@ -177,7 +177,7 @@ export default function InspectionsPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.siteName.trim()) return;
         const allItems = categories.flatMap((c) => c.items);
         const checked = allItems.filter((i) => i.status !== "unchecked");
@@ -197,7 +197,8 @@ export default function InspectionsPage() {
                 totalPassed: passed.length,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Inspection updated");
             setShowForm(false);
             resetForm();
@@ -215,7 +216,8 @@ export default function InspectionsPage() {
             totalPassed: passed.length,
             createdAt: new Date().toISOString(),
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Inspection saved successfully");
         setShowForm(false);
         resetForm();

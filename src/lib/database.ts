@@ -31,12 +31,14 @@ export async function loadRecords<T>(module: string): Promise<T[]> {
 }
 
 // ─── Save a new record ────────────────────────────────────────────
+// Throws on failure so callers can surface it — a save that silently
+// no-ops shows the record on screen but never persists it.
 export async function saveRecord<T extends { id: string }>(
     module: string,
     record: T
 ): Promise<boolean> {
     const userId = await getUserId();
-    if (!userId) return false;
+    if (!userId) throw new Error("You appear to be signed out. Sign in and try again.");
 
     const { error } = await supabase.from("records").insert({
         user_id: userId,
@@ -46,7 +48,7 @@ export async function saveRecord<T extends { id: string }>(
 
     if (error) {
         console.error(`[DutyDocs] Failed to save ${module}:`, error.message);
-        return false;
+        throw new Error(error.message);
     }
     return true;
 }
@@ -83,22 +85,28 @@ export async function deleteRecord(module: string, recordId: string): Promise<bo
 }
 
 // ─── Update a record (for status changes, permits, etc.) ──────────
+// Throws on failure, as saveRecord/deleteRecord do.
 export async function updateRecord<T extends { id: string }>(
     module: string,
     recordId: string,
     updatedData: T
 ): Promise<boolean> {
     const userId = await getUserId();
-    if (!userId) return false;
+    if (!userId) throw new Error("You appear to be signed out. Sign in and try again.");
 
-    const { data: rows } = await supabase
+    const { data: rows, error: lookupError } = await supabase
         .from("records")
         .select("id, data")
         .eq("user_id", userId)
         .eq("module", module);
 
+    if (lookupError) {
+        console.error(`[DutyDocs] Failed to look up ${module} record:`, lookupError.message);
+        throw new Error(lookupError.message);
+    }
+
     const row = (rows || []).find((r) => r.data?.id === recordId);
-    if (!row) return false;
+    if (!row) throw new Error("That record no longer exists.");
 
     const { error } = await supabase
         .from("records")
@@ -107,7 +115,7 @@ export async function updateRecord<T extends { id: string }>(
 
     if (error) {
         console.error(`[DutyDocs] Failed to update:`, error.message);
-        return false;
+        throw new Error(error.message);
     }
     return true;
 }

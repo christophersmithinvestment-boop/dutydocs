@@ -71,7 +71,7 @@ export default function ToolboxTalksPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.topic.trim()) return;
 
         if (editingId) {
@@ -81,7 +81,8 @@ export default function ToolboxTalksPage() {
                 title: form.topic,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Toolbox talk updated");
             setShowForm(false);
             resetForm();
@@ -94,7 +95,8 @@ export default function ToolboxTalksPage() {
             title: form.topic,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Toolbox talk recorded successfully");
         setShowForm(false);
         resetForm();

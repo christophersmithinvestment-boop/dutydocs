@@ -162,7 +162,7 @@ export default function DSEPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.employeeName.trim()) return;
         const allItems = categories.flatMap((c) => c.items);
         const passed = allItems.filter((i) => i.status === "pass");
@@ -178,7 +178,8 @@ export default function DSEPage() {
                 score,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Assessment updated");
             setShowForm(false);
             resetForm();
@@ -193,7 +194,8 @@ export default function DSEPage() {
             score,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Assessment saved successfully");
         setShowForm(false);
         resetForm();

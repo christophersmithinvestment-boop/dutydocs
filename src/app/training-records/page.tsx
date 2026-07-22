@@ -67,7 +67,7 @@ export default function TrainingRecordsPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.employeeName.trim() || !form.courseName.trim()) return;
         const status = getExpiryStatus(form.expiryDate);
 
@@ -79,7 +79,8 @@ export default function TrainingRecordsPage() {
                 title: `${form.employeeName} - ${form.courseName}`,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Training record updated");
             setShowForm(false);
             resetForm();
@@ -93,7 +94,8 @@ export default function TrainingRecordsPage() {
             title: `${form.employeeName} - ${form.courseName}`,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Training record saved successfully");
         setShowForm(false);
         resetForm();

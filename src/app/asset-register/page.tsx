@@ -69,7 +69,7 @@ export default function AssetRegisterPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.assetName.trim() || !form.assetType) return;
 
         if (editingId) {
@@ -79,7 +79,8 @@ export default function AssetRegisterPage() {
                 title: form.assetName,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Asset updated");
             setShowForm(false);
             resetForm();
@@ -92,7 +93,8 @@ export default function AssetRegisterPage() {
             title: form.assetName,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Asset registered successfully");
         setShowForm(false);
         resetForm();

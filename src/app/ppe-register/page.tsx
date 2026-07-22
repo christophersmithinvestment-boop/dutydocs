@@ -66,7 +66,7 @@ export default function PPERegisterPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.employeeName.trim() || !form.ppeType) return;
 
         if (editingId) {
@@ -76,7 +76,8 @@ export default function PPERegisterPage() {
                 title: `${form.employeeName} - ${form.ppeType}`,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("PPE item updated");
             setShowForm(false);
             resetForm();
@@ -89,7 +90,8 @@ export default function PPERegisterPage() {
             title: `${form.employeeName} - ${form.ppeType}`,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("PPE item registered successfully");
         setShowForm(false);
         resetForm();

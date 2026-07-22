@@ -65,7 +65,7 @@ export default function FireDrillPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.date || !form.location.trim()) return;
 
         if (editingId) {
@@ -75,7 +75,8 @@ export default function FireDrillPage() {
                 title: form.location,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Fire drill updated");
             setShowForm(false);
             resetForm();
@@ -88,7 +89,8 @@ export default function FireDrillPage() {
             title: form.location,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Fire drill logged successfully");
         setShowForm(false);
         resetForm();

@@ -94,7 +94,7 @@ export default function RiskAssessmentPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.title.trim()) return;
         const riskLevel = calculateRiskLevel(form.likelihood, form.severity);
         const residualRiskLevel = calculateRiskLevel(form.residualLikelihood, form.residualSeverity);
@@ -108,7 +108,8 @@ export default function RiskAssessmentPage() {
                 residualRiskLevel,
                 createdAt: existing?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Risk assessment updated");
             setShowForm(false);
             resetForm();
@@ -127,7 +128,8 @@ export default function RiskAssessmentPage() {
             residualRiskLevel,
             createdAt: new Date().toISOString(),
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Risk assessment saved successfully!");
         setShowForm(false);
         resetForm();

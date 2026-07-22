@@ -63,9 +63,14 @@ export default function EmergencyContactsPage() {
     // Pre-populate default emergency contacts if none exist
     useEffect(() => {
         if (!loading && items.length === 0) {
-            DEFAULT_CONTACTS.forEach((c) => {
-                addItem({ ...c, id: generateId(), title: c.name, createdAt: new Date().toISOString() });
-            });
+            (async () => {
+                for (const c of DEFAULT_CONTACTS) {
+                    const saved = await addItem({ ...c, id: generateId(), title: c.name, createdAt: new Date().toISOString() });
+                    // Stop at the first failure rather than raising one
+                    // error toast per remaining contact.
+                    if (!saved) break;
+                }
+            })();
         }
     }, [loading, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -74,7 +79,7 @@ export default function EmergencyContactsPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim() || !form.phone.trim()) return;
 
         if (editingId) {
@@ -84,7 +89,8 @@ export default function EmergencyContactsPage() {
                 title: form.name,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Contact updated");
             setShowForm(false);
             resetForm();
@@ -97,7 +103,8 @@ export default function EmergencyContactsPage() {
             title: form.name,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Contact saved successfully");
         setShowForm(false);
         resetForm();

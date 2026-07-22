@@ -35,10 +35,13 @@ export default function ReportBugPage() {
     const { showToast } = useToast();
     const [form, setForm] = useState(EMPTY_FORM);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!form.title.trim() || !form.description.trim()) return;
 
-        addItem({ id: generateId(), ...form, createdAt: new Date().toISOString() });
+        const saved = await addItem({ id: generateId(), ...form, createdAt: new Date().toISOString() });
+        // Keep what they typed if it didn't save — the hook has already
+        // surfaced the reason.
+        if (!saved) return;
         showToast("Bug report submitted!");
         setForm(EMPTY_FORM);
     };

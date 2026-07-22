@@ -10,12 +10,18 @@ export function isClient() {
 }
 
 // LocalStorage helpers
+// Throws on failure (most often a full quota) so callers can tell the
+// user rather than losing the record silently.
 export function saveToStore<T>(key: string, data: T): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(`hs_${key}`, JSON.stringify(data));
   } catch (e) {
     console.error("Failed to save to localStorage:", e);
+    if (e instanceof DOMException && e.name === "QuotaExceededError") {
+      throw new Error("This device is out of storage space for DutyDocs.");
+    }
+    throw e;
   }
 }
 

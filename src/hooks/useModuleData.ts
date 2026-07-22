@@ -74,17 +74,30 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
     }, [refreshData]);
 
     // ─── Add a new record ──────────────────────────────────────────
-    const addItem = useCallback(async (item: T) => {
+    // Resolves false if the record could not be persisted, so callers can
+    // keep the form open instead of reporting a save that never happened.
+    const addItem = useCallback(async (item: T): Promise<boolean> => {
+        const previousItems = items;
         const updated = [item, ...items];
         setItems(updated);
         setTotalRecords(prev => prev + 1);
 
-        if (isSupabaseConfigured) {
-            await saveRecord(module, item);
-        } else {
-            saveToStore(storeKey, updated);
+        try {
+            if (isSupabaseConfigured) {
+                await saveRecord(module, item);
+            } else {
+                saveToStore(storeKey, updated);
+            }
+            return true;
+        } catch (error) {
+            setItems(previousItems);
+            setTotalRecords(prev => Math.max(0, prev - 1));
+            const message = error instanceof Error ? error.message : "Please try again.";
+            console.error(`[DutyDocs] Save failed for ${module}:`, error);
+            showToast(`Couldn't save: ${message}`, "error");
+            return false;
         }
-    }, [items, module, storeKey]);
+    }, [items, module, storeKey, showToast]);
 
     // ─── Delete a record ──────────────────────────────────────────
     const removeItem = useCallback(async (id: string) => {
@@ -117,24 +130,44 @@ export function useModuleData<T extends { id: string; title?: string; status?: s
     }, [items, module, storeKey, entityLabel, confirm, showToast]);
 
     // ─── Update a record ──────────────────────────────────────────
-    const editItem = useCallback(async (id: string, updatedItem: T) => {
+    // Resolves false if the change could not be persisted; the previous
+    // version is restored so the list never shows an unsaved edit.
+    const editItem = useCallback(async (id: string, updatedItem: T): Promise<boolean> => {
+        const previousItems = items;
         const updated = items.map((i) => (i.id === id ? updatedItem : i));
         setItems(updated);
 
-        if (isSupabaseConfigured) {
-            await updateRecord(module, id, updatedItem);
-        } else {
-            saveToStore(storeKey, updated);
+        try {
+            if (isSupabaseConfigured) {
+                await updateRecord(module, id, updatedItem);
+            } else {
+                saveToStore(storeKey, updated);
+            }
+            return true;
+        } catch (error) {
+            setItems(previousItems);
+            const message = error instanceof Error ? error.message : "Please try again.";
+            console.error(`[DutyDocs] Update failed for ${module}:`, error);
+            showToast(`Couldn't save changes: ${message}`, "error");
+            return false;
         }
-    }, [items, module, storeKey]);
+    }, [items, module, storeKey, showToast]);
 
     // ─── Bulk set (for complex operations) ─────────────────────────
     const setAllItems = useCallback((newItems: T[]) => {
+        const previousItems = items;
         setItems(newItems);
         if (!isSupabaseConfigured) {
-            saveToStore(storeKey, newItems);
+            try {
+                saveToStore(storeKey, newItems);
+            } catch (error) {
+                setItems(previousItems);
+                const message = error instanceof Error ? error.message : "Please try again.";
+                console.error(`[DutyDocs] Bulk save failed for ${module}:`, error);
+                showToast(`Couldn't save: ${message}`, "error");
+            }
         }
-    }, [storeKey]);
+    }, [items, module, storeKey, showToast]);
 
     // ─── Export and Import ──────────────────────────────────────────
     const exportData = useCallback(() => {

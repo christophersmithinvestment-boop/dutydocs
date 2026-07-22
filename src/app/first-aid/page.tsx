@@ -63,7 +63,7 @@ export default function FirstAidPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.patientName.trim()) return;
 
         if (editingId) {
@@ -73,7 +73,8 @@ export default function FirstAidPage() {
                 title: form.patientName,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Entry updated");
             setShowForm(false);
             resetForm();
@@ -86,7 +87,8 @@ export default function FirstAidPage() {
             title: form.patientName,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("First Aid entry saved successfully");
         setShowForm(false);
         resetForm();

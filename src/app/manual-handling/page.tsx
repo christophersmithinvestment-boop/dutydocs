@@ -69,7 +69,7 @@ export default function ManualHandlingPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.taskDescription.trim()) return;
         const riskLevel = calculateRiskLevel(form.likelihood, form.severity);
         const residualRiskLevel = calculateRiskLevel(form.residualLikelihood, form.residualSeverity);
@@ -83,7 +83,8 @@ export default function ManualHandlingPage() {
                 residualRiskLevel,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Assessment updated");
             setShowForm(false);
             resetForm();
@@ -98,7 +99,8 @@ export default function ManualHandlingPage() {
             residualRiskLevel,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Assessment saved successfully");
         setShowForm(false);
         resetForm();

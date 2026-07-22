@@ -89,7 +89,7 @@ export default function COSHHPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.substanceName.trim()) return;
 
         if (editingId) {
@@ -99,7 +99,8 @@ export default function COSHHPage() {
                 title: form.substanceName,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("COSHH assessment updated");
             setShowForm(false);
             resetForm();
@@ -117,7 +118,8 @@ export default function COSHHPage() {
             title: form.substanceName, // Map for search
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("COSHH assessment saved!");
         setShowForm(false);
         resetForm();

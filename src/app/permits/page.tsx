@@ -76,7 +76,7 @@ export default function PermitsPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.permitType || !form.description.trim()) return;
 
         if (editingId) {
@@ -86,7 +86,8 @@ export default function PermitsPage() {
                 title: form.permitType,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Permit updated");
             setShowForm(false);
             resetForm();
@@ -99,7 +100,8 @@ export default function PermitsPage() {
             title: form.permitType,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Permit created successfully");
         setShowForm(false);
         resetForm();
@@ -143,10 +145,11 @@ export default function PermitsPage() {
         pdf.save(`permit-${slug}-${item.id.split("-")[0]}.pdf`);
     };
 
-    const updateStatus = (id: string, status: Permit["status"]) => {
+    const updateStatus = async (id: string, status: Permit["status"]) => {
         const item = items.find((i) => i.id === id);
         if (item) {
-            editItem(id, { ...item, status });
+            const saved = await editItem(id, { ...item, status });
+            if (!saved) return;
             showToast(`Status updated to ${status}`);
         }
     };

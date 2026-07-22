@@ -65,7 +65,7 @@ export default function NearMissPage() {
         setEditingId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.description.trim()) return;
 
         if (editingId) {
@@ -75,7 +75,8 @@ export default function NearMissPage() {
                 title: form.description,
                 createdAt: items.find((i) => i.id === editingId)?.createdAt ?? new Date().toISOString(),
             };
-            editItem(editingId, updatedItem);
+            const saved = await editItem(editingId, updatedItem);
+            if (!saved) return;
             showToast("Near miss report updated");
             setShowForm(false);
             resetForm();
@@ -93,7 +94,8 @@ export default function NearMissPage() {
             title: form.description,
             createdAt: new Date().toISOString()
         };
-        addItem(newItem);
+        const saved = await addItem(newItem);
+        if (!saved) return;
         showToast("Near miss reported successfully");
         setShowForm(false);
         resetForm();
