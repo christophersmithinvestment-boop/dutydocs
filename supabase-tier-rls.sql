@@ -152,7 +152,18 @@ set raw_app_meta_data =
 where raw_app_meta_data ->> 'plan' is null;
 
 -- ─── 5. Verify ────────────────────────────────────────────────────
--- Expect: 9 users, every one with a plan in app_metadata, 4 of them pro.
+-- What matters here is that missing_plan is 0 and that every account
+-- which SHOULD be Pro actually is. Don't expect a specific pro_users
+-- count: the backfill above lists candidate emails, and only the ones
+-- with real accounts match. On the 2026-08-05 run this was 2 of 9 —
+-- hello@dutydocsapp.com is a contact address with no account behind it,
+-- and the single legacy user_metadata Pro was already one of the named
+-- emails. That is correct, not a shortfall.
+--
+-- If an account that should be Pro comes back Starter, it fails in the
+-- worst way: TEMP_TEST_EMAILS/MASTER_EMAILS still unlock the UI, so the
+-- modules appear and then read as empty, because RLS filters SELECTs
+-- silently instead of erroring. Check by email, not by count.
 select count(*)                                                as total_users,
        count(*) filter (where raw_app_meta_data ->> 'plan' = 'pro')     as pro_users,
        count(*) filter (where raw_app_meta_data ->> 'plan' = 'starter') as starter_users,
