@@ -1,4 +1,21 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
+import type { PostgrestError } from "@supabase/supabase-js";
+
+// ─── Translate a database rejection into something a user can act on ──
+// Postgres raises 42501 when an RLS policy refuses a write. Since tier is
+// enforced in RLS (supabase-tier-rls.sql), that is what a Starter account
+// hitting a Pro module or the 50-record cap looks like from here. Reached
+// only by a client that skipped the UI checks — but it must fail loudly
+// with a real reason, not the raw policy text.
+function describeError(error: PostgrestError, module: string): Error {
+    if (error.code === "42501") {
+        return new Error(
+            `Your plan doesn't allow saving to ${module}. ` +
+            `Upgrade to Pro, or remove some records if you're at the 50-record limit.`
+        );
+    }
+    return new Error(error.message);
+}
 
 // ─── Get current user ID ──────────────────────────────────────────
 async function getUserId(): Promise<string | null> {
@@ -50,7 +67,7 @@ export async function saveRecord<T extends { id: string }>(
 
     if (error) {
         console.error(`[DutyDocs] Failed to save ${module}:`, error.message);
-        throw new Error(error.message);
+        throw describeError(error, module);
     }
     return true;
 }
@@ -101,7 +118,7 @@ export async function saveRecords<T extends { id: string }>(
 
     if (error) {
         console.error(`[DutyDocs] Failed to save ${module} batch:`, error.message);
-        throw new Error(error.message);
+        throw describeError(error, module);
     }
     return true;
 }
@@ -157,7 +174,7 @@ export async function updateRecord<T extends { id: string }>(
 
     if (error) {
         console.error(`[DutyDocs] Failed to update:`, error.message);
-        throw new Error(error.message);
+        throw describeError(error, module);
     }
     return true;
 }

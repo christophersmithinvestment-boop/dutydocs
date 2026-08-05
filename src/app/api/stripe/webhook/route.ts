@@ -41,9 +41,13 @@ export async function POST(req: NextRequest) {
                     const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
                     const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
 
+                    // plan goes in app_metadata (service-role writable only) —
+                    // it is what RLS trusts. The Stripe ids stay in
+                    // user_metadata; the client reads them to open the billing
+                    // portal and they are not a security boundary.
                     await supabaseAdmin.auth.admin.updateUserById(userId, {
+                        app_metadata: { plan: "pro" },
                         user_metadata: {
-                            plan: "pro",
                             stripe_customer_id: customerId,
                             stripe_subscription_id: subscriptionId,
                         },
@@ -58,10 +62,8 @@ export async function POST(req: NextRequest) {
                 const userId = subscription.metadata?.supabase_user_id;
                 if (userId) {
                     await supabaseAdmin.auth.admin.updateUserById(userId, {
-                        user_metadata: {
-                            plan: "starter",
-                            stripe_subscription_id: null,
-                        },
+                        app_metadata: { plan: "starter" },
+                        user_metadata: { stripe_subscription_id: null },
                     });
                     console.log(`[DutyDocs] User ${userId} downgraded to Starter`);
                 }
@@ -74,9 +76,7 @@ export async function POST(req: NextRequest) {
                 if (userId) {
                     const isActive = subscription.status === "active" || subscription.status === "trialing";
                     await supabaseAdmin.auth.admin.updateUserById(userId, {
-                        user_metadata: {
-                            plan: isActive ? "pro" : "starter",
-                        },
+                        app_metadata: { plan: isActive ? "pro" : "starter" },
                     });
                     console.log(`[DutyDocs] User ${userId} subscription status: ${subscription.status}`);
                 }

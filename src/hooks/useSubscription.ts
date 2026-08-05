@@ -21,8 +21,12 @@ export const MASTER_EMAILS = [
 
 // TEMP: dev override for testing — remove before wider rollout.
 // Grants full access to all modules for these accounts only. Everyone
-// else continues to resolve through `plan` (Stripe -> user_metadata).
+// else continues to resolve through `plan` (Stripe -> app_metadata).
 // To remove: delete this array and the `isTempTestEmail` term on `isPro`.
+//
+// This array only unlocks the UI. These accounts also need
+// app_metadata.plan = 'pro' or RLS will still refuse their data —
+// supabase-tier-rls.sql sets that for them.
 const TEMP_TEST_EMAILS = [
     "bianca.byrne1@icloud.com",
 ];
@@ -41,7 +45,12 @@ export function useSubscription() {
     // TEMP: dev override for testing — remove before wider rollout.
     const isTempTestEmail = TEMP_TEST_EMAILS.includes(userEmail);
 
-    const plan = user?.user_metadata?.plan || "starter";
+    // Tier is read from app_metadata, which only the service role can write.
+    // It used to come from user_metadata, which any signed-in user can set
+    // with supabase.auth.updateUser({ data: { plan: "pro" } }) — self-granted
+    // Pro, no gating bug required. Everything below is UX only; the real
+    // boundary is the RLS policy on `records` (see supabase-tier-rls.sql).
+    const plan = user?.app_metadata?.plan || "starter";
     const isPro = plan === "pro" || isMasterEmail || isTempTestEmail;
     const isStarter = !isPro;
     const stripeCustomerId = user?.user_metadata?.stripe_customer_id || null;
