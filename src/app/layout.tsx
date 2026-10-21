@@ -15,8 +15,10 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "DutyDocs – Health & Safety",
-  description: "Comprehensive mobile health and safety management app",
+  metadataBase: new URL("https://www.dutydocsapp.com"),
+  title: "DutyDocs – RAMS, Risk Assessments & COSHH App for UK Contractors",
+  description:
+    "Create site-ready RAMS, risk assessments and COSHH in minutes. Log inspections, track training and PPE expiries, export PDFs. Free plan for UK trades.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -40,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en-GB">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>

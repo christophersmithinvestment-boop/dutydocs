@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { HardHat, Trash2, Users, LogOut, User, Crown, CreditCard, Sparkles, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -14,6 +14,14 @@ import { useToast } from "@/components/ui/Toast";
 import { useUsage } from "@/components/UsageProvider";
 
 export default function SettingsPage() {
+    return (
+        <Suspense fallback={null}>
+            <SettingsPageContent />
+        </Suspense>
+    );
+}
+
+function SettingsPageContent() {
     const [clearing, setClearing] = useState(false);
     const confirm = useConfirm();
     const { showToast } = useToast();

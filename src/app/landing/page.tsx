@@ -10,6 +10,27 @@ import {
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
+import { ScreenshotPlaceholder } from "@/components/landing/ScreenshotPlaceholder";
+import { StatsLogoStrip, Testimonials } from "@/components/landing/SocialProof";
+
+// PLACEHOLDER visuals: add `src: "/screenshots/<file>.png"` once real screenshots exist.
+const SHOWCASE: { title: string; desc: string; color: string; src?: string }[] = [
+    { title: "RAMS", desc: "Build risk assessments and method statements ready to take on site.", color: "#3b82f6" },
+    { title: "Risk assessments", desc: "5×5 matrix scoring with residual risk tracking.", color: "#f97316" },
+    { title: "COSHH", desc: "Record substances with GHS hazard symbols and controls.", color: "#a855f7" },
+    { title: "Inspections", desc: "Checklist-driven site inspections with scoring.", color: "#10b981" },
+    { title: "Training records", desc: "Store certificates and get warned before they expire.", color: "#14b8a6" },
+    { title: "PPE tracking", desc: "Log PPE issued and keep on top of expiry dates.", color: "#eab308" },
+];
+
+const FAQS = [
+    { q: "Is there a free plan?", a: "Yes. The Starter plan is free, includes up to 50 records and the core modules, and doesn't need a card." },
+    { q: "How much is Pro?", a: "Pro is £19.99 per month and unlocks unlimited records, all 16 modules, cloud sync and team collaboration." },
+    { q: "Can I cancel anytime?", a: "Yes. Pro is billed monthly and you can cancel whenever you like." },
+    { q: "Can I export my documents as PDFs?", a: "Yes. Records can be exported as PDFs to print, email or share with clients and site managers." },
+    { q: "Does it work on my phone on site?", a: "Yes. DutyDocs works in your mobile browser and can be installed as an app, with offline support for when signal drops." },
+    { q: "Can I get my data out?", a: "Yes. You can export your records at any time — there's no lock-in." },
+];
 
 const FEATURES = [
     { icon: ClipboardCheck, label: "Risk Assessments", desc: "5×5 matrix scoring with residual risk tracking", color: "#f97316" },
@@ -31,9 +52,9 @@ const FEATURES = [
 ];
 
 const STEPS = [
-    { num: "01", title: "Sign Up Free", desc: "Create your account in seconds — no credit card required.", icon: Zap },
-    { num: "02", title: "Log Everything", desc: "Use any of 16 built-in modules to capture safety data from anywhere.", icon: ClipboardCheck },
-    { num: "03", title: "Stay Compliant", desc: "Export PDF reports, track expiries, and prove compliance effortlessly.", icon: CheckCircle2 },
+    { num: "01", title: "Sign Up Free", desc: "Create your account in seconds — no card needed.", icon: Zap },
+    { num: "02", title: "Fill In on Site", desc: "Use any of 16 built-in modules to capture RAMS, assessments and checks from your phone.", icon: ClipboardCheck },
+    { num: "03", title: "Export & Share", desc: "Export PDFs for clients and site managers, and get warned before training or PPE expires.", icon: CheckCircle2 },
 ];
 
 const PRICING = [
@@ -50,16 +71,16 @@ const PRICING = [
         name: "Pro",
         price: "£19.99",
         period: "/month",
-        desc: "For growing businesses that need full compliance",
+        desc: "For contractors and growing teams who need every module",
         features: ["Unlimited records", "All 16 modules", "Cloud sync & backup", "Priority support", "Team collaboration", "Expiry alerts"],
-        cta: "Start Free Trial",
+        cta: "Start Pro trial",
         popular: true,
     },
     {
         name: "Business",
         price: "£49",
         period: "/month",
-        desc: "For teams managing compliance across a site or organisation",
+        desc: "For teams managing safety paperwork across multiple sites",
         features: ["Everything in Pro", "Multi-site management", "Custom branding", "SSO & audit logs", "Dedicated account manager", "API access"],
         cta: "Contact Sales",
         popular: false,
@@ -128,20 +149,20 @@ export default function LandingPage() {
                         background: "rgba(20,184,166,0.1)", border: "1px solid rgba(20,184,166,0.2)",
                         fontSize: "0.8125rem", fontWeight: 600, color: "#2dd4bf",
                     }}>
-                        <Star size={14} /> Now with cloud sync
+                        <Star size={14} /> For UK contractors &amp; small businesses
                     </div>
 
                     <h1 style={{
                         fontSize: "clamp(2.25rem, 6vw, 4rem)", fontWeight: 800, lineHeight: 1.1,
                         letterSpacing: "-0.02em", maxWidth: 800, margin: "0 auto 1.5rem",
                     }}>
-                        Health & Safety
+                        Site-ready RAMS
                         <br />
                         <span style={{
                             background: "linear-gradient(135deg, #14b8a6, #2dd4bf, #0d9488)",
                             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                         }}>
-                            Made Simple
+                            in minutes
                         </span>
                     </h1>
 
@@ -149,7 +170,7 @@ export default function LandingPage() {
                         fontSize: "clamp(1rem, 2.5vw, 1.25rem)", color: "var(--color-text-secondary)",
                         maxWidth: 640, margin: "0 auto 3rem", lineHeight: 1.6,
                     }}>
-                        Streamline your health and safety compliance with 16 professional modules. Built for the modern safety professional, from site to office.
+                        Risk assessments, COSHH, inspections and method statements from your phone. Track training and PPE expiries, and export professional PDFs for clients and site managers.
                     </p>
 
                     <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -159,13 +180,15 @@ export default function LandingPage() {
                             </Link>
                         ) : (
                             <Link href="/signup" className="btn btn-primary" style={{ padding: "0.875rem 2rem", fontSize: "1rem" }}>
-                                Start Free <ArrowRight size={16} />
+                                Create your first RAMS free <ArrowRight size={16} />
                             </Link>
                         )}
-                        <a href="#features" className="btn btn-secondary" style={{ padding: "0.875rem 2rem", fontSize: "1rem" }}>
-                            See Features
-                        </a>
                     </div>
+                    {!user && (
+                        <p style={{ marginTop: "0.75rem", fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
+                            Free plan · No card needed
+                        </p>
+                    )}
 
                     {/* Trust bar */}
                     <div className="flex items-center justify-center gap-6 flex-wrap mt-12" style={{ color: "var(--color-text-muted)", fontSize: "0.8125rem" }}>
@@ -174,7 +197,35 @@ export default function LandingPage() {
                         <span className="flex items-center gap-1.5"><Zap size={14} /> Works offline (PWA)</span>
                     </div>
 
+                    {/* Hero visual — PLACEHOLDER: pass src="/screenshots/hero.png" when available */}
+                    <div style={{ maxWidth: 880, margin: "3.5rem auto 0", textAlign: "left" }}>
+                        <ScreenshotPlaceholder title="DutyDocs dashboard" rows={7} tall />
+                    </div>
+
                     <div className="hazard-stripe" style={{ maxWidth: 220, margin: "2.5rem auto 0" }} />
+                </div>
+            </section>
+
+            <StatsLogoStrip />
+
+            {/* ─── Product showcase ──────────────────────────────────── */}
+            <section style={{ maxWidth: 1200, margin: "0 auto", padding: "4rem 1.5rem 1rem" }}>
+                <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+                    <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 800, letterSpacing: "-0.02em" }}>
+                        The paperwork, sorted
+                    </h2>
+                    <p style={{ color: "var(--color-text-secondary)", maxWidth: 560, margin: "0.75rem auto 0", fontSize: "1.0625rem" }}>
+                        Everything a contractor needs to get on site, in one app.
+                    </p>
+                </div>
+                <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
+                    {SHOWCASE.map((item) => (
+                        <div key={item.title}>
+                            <ScreenshotPlaceholder title={item.title} src={item.src} accent={item.color} />
+                            <p style={{ marginTop: "0.875rem", fontWeight: 700 }}>{item.title}</p>
+                            <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", lineHeight: 1.5 }}>{item.desc}</p>
+                        </div>
+                    ))}
                 </div>
             </section>
 
@@ -186,7 +237,7 @@ export default function LandingPage() {
                         Everything You Need
                     </h2>
                     <p style={{ color: "var(--color-text-secondary)", maxWidth: 500, margin: "0.75rem auto 0", fontSize: "1.0625rem" }}>
-                        16 specialised modules covering every area of workplace health & safety compliance.
+                        16 modules for the RAMS, assessments, checks and records you deal with every week.
                     </p>
                 </div>
 
@@ -312,13 +363,21 @@ export default function LandingPage() {
                             </ul>
 
                             {planItem.name === "Pro" ? (
-                                <button
-                                    onClick={upgrade}
-                                    className="btn btn-full btn-primary"
-                                    style={{ padding: "0.875rem", fontSize: "0.9375rem" }}
-                                >
-                                    Join the waitlist <ChevronRight size={16} />
-                                </button>
+                                user ? (
+                                    isPro ? (
+                                        <Link href="/dashboard" className="btn btn-full btn-primary" style={{ padding: "0.875rem", fontSize: "0.9375rem" }}>
+                                            You&apos;re on Pro <ChevronRight size={16} />
+                                        </Link>
+                                    ) : (
+                                        <button onClick={upgrade} className="btn btn-full btn-primary" style={{ padding: "0.875rem", fontSize: "0.9375rem" }}>
+                                            {planItem.cta} <ChevronRight size={16} />
+                                        </button>
+                                    )
+                                ) : (
+                                    <Link href="/signup?plan=pro" className="btn btn-full btn-primary" style={{ padding: "0.875rem", fontSize: "0.9375rem" }}>
+                                        {planItem.cta} <ChevronRight size={16} />
+                                    </Link>
+                                )
                             ) : planItem.name === "Business" ? (
                                 <a
                                     href="mailto:hello@dutydocsapp.com?subject=DutyDocs%20Business%20enquiry"
@@ -351,7 +410,7 @@ export default function LandingPage() {
                     </h2>
                     <p style={{ color: "var(--color-text-secondary)", maxWidth: 700, margin: "0 auto 4rem", fontSize: "1.0625rem", lineHeight: 1.6 }}>
                         DutyDocs was born on real sites, not in a boardroom — built to eliminate paperwork,
-                        reduce risk, and make compliance effortless whether you manage one site or fifty.
+                        and keep your safety records organised whether you manage one site or fifty.
                         Your records stay yours: export everything, any time, no lock-in.
                     </p>
 
@@ -364,6 +423,23 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            <Testimonials />
+
+            {/* ─── FAQ ──────────────────────────────────────────────── */}
+            <section id="faq" style={{ maxWidth: 760, margin: "0 auto", padding: "5rem 1.5rem" }}>
+                <h2 style={{ textAlign: "center", fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 800, marginBottom: "2rem" }}>
+                    Frequently asked questions
+                </h2>
+                <div className="space-y-3">
+                    {FAQS.map((f) => (
+                        <details key={f.q} style={{ padding: "1rem 1.25rem", background: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: 12 }}>
+                            <summary style={{ cursor: "pointer", fontWeight: 600 }}>{f.q}</summary>
+                            <p style={{ marginTop: "0.75rem", fontSize: "0.9375rem", color: "var(--color-text-secondary)", lineHeight: 1.6 }}>{f.a}</p>
+                        </details>
+                    ))}
+                </div>
+            </section>
+
             {/* ─── CTA Banner ──────────────────────────────────────── */}
             <section style={{ padding: "0 1.5rem 5rem" }}>
                 <div style={{
@@ -373,7 +449,7 @@ export default function LandingPage() {
                     border: "1px solid rgba(20,184,166,0.2)",
                 }}>
                     <h2 style={{ fontSize: "clamp(1.5rem, 3.5vw, 2rem)", fontWeight: 800, marginBottom: "1rem" }}>
-                        Ready to Transform Your Safety Management?
+                        Ready to sort your site paperwork?
                     </h2>
                     <p style={{ color: "var(--color-text-secondary)", maxWidth: 500, margin: "0 auto 2rem", fontSize: "1.0625rem" }}>
                         Get set up in minutes, log your first record today, and keep your paperwork sorted for good. Free to start — no credit card required.
@@ -391,9 +467,9 @@ export default function LandingPage() {
             </section>
 
             {/* ─── Footer ──────────────────────────────────────────── */}
-            <footer style={{
+            <footer className="pb-28 md:pb-10" style={{
                 borderTop: "1px solid var(--color-border)",
-                padding: "2.5rem 1.5rem",
+                paddingTop: "2.5rem", paddingLeft: "1.5rem", paddingRight: "1.5rem",
             }}>
                 <div style={{ maxWidth: 1200, margin: "0 auto" }} className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
@@ -410,6 +486,23 @@ export default function LandingPage() {
                     </div>
                 </div>
             </footer>
+
+            {/* ─── Mobile sticky CTA ─────────────────────────────────── */}
+            {!user && (
+                <div
+                    className="md:hidden"
+                    style={{
+                        position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60,
+                        padding: "0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom))",
+                        background: "rgba(10,14,26,0.92)", backdropFilter: "blur(16px)",
+                        borderTop: "1px solid rgba(30,41,59,0.6)",
+                    }}
+                >
+                    <Link href="/signup" className="btn btn-full btn-primary" style={{ padding: "0.875rem", fontSize: "0.9375rem" }}>
+                        Create your first RAMS free <ArrowRight size={16} />
+                    </Link>
+                </div>
+            )}
         </div>
     );
 }

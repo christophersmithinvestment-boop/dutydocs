@@ -30,7 +30,9 @@ const TEMP_TEST_EMAILS = [
 // Launch mode: billing is not live yet. upgrade() collects waitlist
 // interest by email instead of opening Stripe checkout. To re-enable
 // billing, restore the /api/stripe/checkout call below.
-const WAITLIST_MODE = true;
+// Set NEXT_PUBLIC_BILLING_LIVE="true" in Vercel to switch Pro CTAs to Stripe checkout.
+const WAITLIST_MODE = process.env.NEXT_PUBLIC_BILLING_LIVE !== "true";
+export const BILLING_LIVE = !WAITLIST_MODE;
 const WAITLIST_EMAIL = "hello@dutydocsapp.com";
 
 export function useSubscription() {
