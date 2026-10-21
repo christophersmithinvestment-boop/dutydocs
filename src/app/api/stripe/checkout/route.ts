@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
             success_url: `${req.nextUrl.origin}/settings?upgrade=success`,
             cancel_url: `${req.nextUrl.origin}/settings?upgrade=cancelled`,
             subscription_data: {
+                trial_period_days: 7,
                 metadata: { supabase_user_id: userId },
             },
             metadata: { supabase_user_id: userId },

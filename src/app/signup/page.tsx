@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Mail, Lock, User, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
+import { BILLING_LIVE } from "@/hooks/useSubscription";
 
 export default function SignupPage() {
     const [fullName, setFullName] = useState("");
@@ -33,10 +34,15 @@ export default function SignupPage() {
 
         setLoading(true);
 
-        const { error: authError } = await supabase.auth.signUp({
+        // ?plan=pro → send the user to Pro checkout once they're signed in
+        const wantsPro = BILLING_LIVE && new URLSearchParams(window.location.search).get("plan") === "pro";
+        const proRedirect = `${window.location.origin}/settings?start=pro`;
+
+        const { data: signUpData, error: authError } = await supabase.auth.signUp({
             email,
             password,
             options: {
+                ...(wantsPro ? { emailRedirectTo: proRedirect } : {}),
                 data: {
                     full_name: fullName,
                     marketing_consent: marketingConsent,
@@ -49,6 +55,12 @@ export default function SignupPage() {
         if (authError) {
             setError(authError.message);
             setLoading(false);
+            return;
+        }
+
+        // Email confirmation disabled → session exists, go straight to checkout
+        if (wantsPro && signUpData?.session) {
+            window.location.href = proRedirect;
             return;
         }
 

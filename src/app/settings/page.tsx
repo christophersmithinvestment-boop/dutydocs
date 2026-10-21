@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { HardHat, Trash2, Users, LogOut, User, Crown, CreditCard, Sparkles, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, BILLING_LIVE } from "@/hooks/useSubscription";
 import { useSearchParams } from "next/navigation";
 import { TeamInviteModal } from "@/components/TeamInviteModal";
 import { getTeamMembers, TeamMember } from "@/lib/teams";
@@ -14,6 +14,14 @@ import { useToast } from "@/components/ui/Toast";
 import { useUsage } from "@/components/UsageProvider";
 
 export default function SettingsPage() {
+    return (
+        <Suspense fallback={null}>
+            <SettingsPageContent />
+        </Suspense>
+    );
+}
+
+function SettingsPageContent() {
     const [clearing, setClearing] = useState(false);
     const confirm = useConfirm();
     const { showToast } = useToast();
@@ -22,6 +30,15 @@ export default function SettingsPage() {
     const { isPro, isStarter, upgrade, manageSubscription } = useSubscription();
     const searchParams = useSearchParams();
     const upgradeStatus = searchParams.get("upgrade");
+    const startPro = searchParams.get("start") === "pro";
+    const autoCheckoutFired = useRef(false);
+
+    // Arriving from signup with ?plan=pro → open Stripe checkout automatically
+    useEffect(() => {
+        if (!startPro || !BILLING_LIVE || !user || !isStarter || autoCheckoutFired.current) return;
+        autoCheckoutFired.current = true;
+        upgrade();
+    }, [startPro, user, isStarter, upgrade]);
     const [showTeamModal, setShowTeamModal] = useState(false);
     const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
     const [loadingTeam, setLoadingTeam] = useState(true);
@@ -182,7 +199,7 @@ export default function SettingsPage() {
                             className="btn btn-primary btn-full"
                             style={{ padding: "0.75rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
                         >
-                            <Crown size={16} /> Join the Pro waitlist
+                            <Crown size={16} /> {BILLING_LIVE ? "Start 7-day free trial" : "Join the Pro waitlist"}
                         </button>
                     ) : (
                         <button
