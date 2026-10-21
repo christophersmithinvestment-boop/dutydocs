@@ -27,7 +27,7 @@ export default function ContactPage() {
             <DutyDocsLogo size={32} />
             <span className="text-lg font-bold">DutyDocs</span>
           </div>
-          <Link href="/landing" className="flex items-center gap-2 text-sm text-teal-400 hover:text-teal-300 transition-colors">
+          <Link href="/" className="flex items-center gap-2 text-sm text-teal-400 hover:text-teal-300 transition-colors">
             <ArrowLeft size={16} /> Back to Home
           </Link>
         </div>

@@ -4,7 +4,7 @@ const isExport = process.env.EXPORT_MODE === 'true';
 
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' https://js.stripe.com;
+    script-src 'self' 'unsafe-inline' https://js.stripe.com https://va.vercel-scripts.com;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://*.supabase.co;
     font-src 'self';
@@ -14,13 +14,16 @@ const cspHeader = `
     frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
     frame-ancestors 'none';
     upgrade-insecure-requests;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://dutydocs-ocr-service.onrender.com;
+    connect-src 'self' https://va.vercel-scripts.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://dutydocs-ocr-service.onrender.com;
 `.replace(/\s{2,}/g, ' ').trim();
 
 const nextConfig: NextConfig = {
   output: isExport ? 'export' : undefined,
   images: {
     unoptimized: true,
+  },
+  async redirects() {
+    return [{ source: '/landing', destination: '/', permanent: true }];
   },
   async headers() {
     return [

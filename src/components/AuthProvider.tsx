@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isPublic = PUBLIC_ROUTES.includes(pathname);
 
         if (!user && !isPublic) {
-            router.replace("/landing");
+            router.replace("/");
         } else if (user && AUTH_FLOW_ROUTES.includes(pathname)) {
             router.replace("/dashboard");
         }
@@ -83,8 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.replace("/login");
     };
 
-    // Loading spinner (only when Supabase is configured)
-    if (loading) {
+    // Loading spinner (only when Supabase is configured). Public pages render
+    // immediately so their HTML is server-rendered for visitors and crawlers.
+    if (loading && !PUBLIC_ROUTES.includes(pathname)) {
         return (
             <div
                 className="min-h-dvh flex flex-col items-center justify-center gap-4"

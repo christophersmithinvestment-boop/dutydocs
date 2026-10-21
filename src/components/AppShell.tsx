@@ -13,6 +13,7 @@ import { UsageProvider } from "@/components/UsageProvider";
 const AUTH_PAGES = [
     "/login",
     "/signup",
+    "/",
     "/landing",
     "/privacy",
     "/terms",
