@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { DutyDocsLogo } from "@/components/DutyDocsLogo";
 import { useAuth } from "@/components/AuthProvider";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, BILLING_LIVE } from "@/hooks/useSubscription";
 import { ScreenshotPlaceholder } from "@/components/landing/ScreenshotPlaceholder";
 import { StatsLogoStrip, Testimonials } from "@/components/landing/SocialProof";
 
@@ -25,7 +25,7 @@ const SHOWCASE: { title: string; desc: string; color: string; src?: string }[] =
 
 const FAQS = [
     { q: "Is there a free plan?", a: "Yes. The Starter plan is free, includes up to 50 records and the core modules, and doesn't need a card." },
-    { q: "How much is Pro?", a: "Pro is £19.99 per month and unlocks unlimited records, all 16 modules, cloud sync and team collaboration." },
+    { q: "How much is Pro?", a: (BILLING_LIVE ? "Pro comes with a 7-day free trial, then £19.99/month, cancel anytime." : "Pro is £19.99 per month.") + " It unlocks unlimited records, all 16 modules, cloud sync and team collaboration." },
     { q: "Can I cancel anytime?", a: "Yes. Pro is billed monthly and you can cancel whenever you like." },
     { q: "Can I export my documents as PDFs?", a: "Yes. Records can be exported as PDFs to print, email or share with clients and site managers." },
     { q: "Does it work on my phone on site?", a: "Yes. DutyDocs works in your mobile browser and can be installed as an app, with offline support for when signal drops." },
@@ -72,8 +72,9 @@ const PRICING = [
         price: "£19.99",
         period: "/month",
         desc: "For contractors and growing teams who need every module",
+        note: "7-day free trial, then £19.99/month, cancel anytime",
         features: ["Unlimited records", "All 16 modules", "Cloud sync & backup", "Priority support", "Team collaboration", "Expiry alerts"],
-        cta: "Start Pro trial",
+        cta: BILLING_LIVE ? "Start 7-day free trial" : "Join the Pro waitlist",
         popular: true,
     },
     {
@@ -352,6 +353,9 @@ export default function LandingPage() {
                                 <span style={{ fontSize: "2.5rem", fontWeight: 800 }}>{planItem.price}</span>
                                 {planItem.period && <span style={{ fontSize: "0.9375rem", color: "var(--color-text-muted)" }}>{planItem.period}</span>}
                             </div>
+                            {"note" in planItem && planItem.note && BILLING_LIVE && (
+                                <p style={{ marginTop: "-1rem", marginBottom: "1.5rem", fontSize: "0.8125rem", color: "#2dd4bf", fontWeight: 600 }}>{planItem.note}</p>
+                            )}
 
                             <ul style={{ listStyle: "none", marginBottom: "2rem" }} className="space-y-2.5">
                                 {planItem.features.map((f) => (

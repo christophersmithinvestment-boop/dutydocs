@@ -1,7 +1,7 @@
 "use client";
 
 import { Crown, X, Check } from "lucide-react";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, BILLING_LIVE } from "@/hooks/useSubscription";
 
 interface UpgradeModalProps {
     isOpen: boolean;
@@ -69,10 +69,12 @@ export default function UpgradeModal({
                         onClick={() => upgrade()}
                         className="btn btn-primary w-full py-4 text-base font-bold flex items-center justify-center gap-2 mb-3 shadow-lg shadow-emerald-600/20"
                     >
-                        <Crown size={18} /> Join the Pro waitlist
+                        <Crown size={18} /> {BILLING_LIVE ? "Start 7-day free trial" : "Join the Pro waitlist"}
                     </button>
                     <p className="text-[11px] text-[var(--color-text-muted)] mb-3">
-                        Pro (£19.99/month) is launching soon — waitlist members get first access.
+                        {BILLING_LIVE
+                            ? "7-day free trial, then £19.99/month. Cancel anytime."
+                            : "Pro (£19.99/month) is launching soon — waitlist members get first access."}
                     </p>
 
                     <button
