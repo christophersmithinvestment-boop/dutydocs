@@ -30,7 +30,7 @@ export default function NotFoundPage() {
         
         <div className="flex items-center gap-4 flex-wrap justify-center">
           <Link 
-            href="/landing" 
+            href="/" 
             className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg flex items-center gap-2 transition-colors border border-slate-700"
           >
             <Home size={18} /> Go Home

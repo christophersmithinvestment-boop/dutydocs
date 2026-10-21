@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,6 +21,10 @@ export const metadata: Metadata = {
   description:
     "Create site-ready RAMS, risk assessments and COSHH in minutes. Log inspections, track training and PPE expiries, export PDFs. Free plan for UK trades.",
   manifest: "/manifest.json",
+  // Google Search Console: set NEXT_PUBLIC_GSC_VERIFICATION to the token from the HTML-tag method.
+  ...(process.env.NEXT_PUBLIC_GSC_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION } }
+    : {}),
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -50,6 +55,7 @@ export default function RootLayout({
         className={`${inter.className} ${inter.variable} ${spaceGrotesk.variable} min-h-dvh antialiased flex`}
       >
         <AppShell>{children}</AppShell>
+        <Analytics />
       </body>
     </html>
   );

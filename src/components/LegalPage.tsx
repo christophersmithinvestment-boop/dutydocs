@@ -29,12 +29,12 @@ export function LegalPage({
         <div className="min-h-dvh flex flex-col w-full" style={{ color: "var(--color-text-primary)" }}>
             <nav style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--color-border)" }}>
                 <div className="flex items-center justify-between" style={{ maxWidth: 768, margin: "0 auto" }}>
-                    <Link href="/landing" className="flex items-center gap-2.5">
+                    <Link href="/" className="flex items-center gap-2.5">
                         <DutyDocsLogo size={30} />
                         <span className="text-base font-bold">DutyDocs</span>
                     </Link>
                     <Link
-                        href="/landing"
+                        href="/"
                         className="flex items-center gap-2 text-sm font-medium transition-colors"
                         style={{ color: "var(--color-accent)" }}
                     >

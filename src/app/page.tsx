@@ -1,44 +1,46 @@
-"use client";
+import type { Metadata } from "next";
+import LandingPage from "@/components/landing/LandingPage";
 
-import { useAuth } from "@/components/AuthProvider";
-import { isSupabaseConfigured } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
-import { DutyDocsLogo } from "@/components/DutyDocsLogo";
+// Landing page served at "/" (server-rendered). Signed-in users are sent to
+// /dashboard by AuthProvider once their client-side session loads.
+const TITLE = "DutyDocs – RAMS, Risk Assessments & COSHH App for UK Contractors";
+const DESCRIPTION =
+    "Create site-ready RAMS, risk assessments and COSHH in minutes. Log inspections, track training and PPE expiries, export PDFs. Free plan for UK trades.";
 
-/**
- * Root route — redirects based on auth state:
- *  • Logged in  → /dashboard
- *  • Logged out → /landing
- *  • Dev mode (no Supabase) → /dashboard
- */
-export default function RootPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+export const metadata: Metadata = {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: { canonical: "/" },
+    openGraph: {
+        type: "website", url: "/", siteName: "DutyDocs", locale: "en_GB",
+        title: TITLE, description: DESCRIPTION,
+        images: [{ url: "/icons/icon-512x512.png", width: 512, height: 512, alt: "DutyDocs" }],
+    },
+    twitter: { card: "summary", title: TITLE, description: DESCRIPTION, images: ["/icons/icon-512x512.png"] },
+};
 
-  useEffect(() => {
-    if (loading) return;
+const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "DutyDocs",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web, iOS, Android",
+    url: "https://www.dutydocsapp.com/",
+    description: DESCRIPTION,
+    offers: [
+        { "@type": "Offer", name: "Starter", price: "0", priceCurrency: "GBP" },
+        {
+            "@type": "Offer", name: "Pro", price: "19.99", priceCurrency: "GBP",
+            priceSpecification: { "@type": "UnitPriceSpecification", price: "19.99", priceCurrency: "GBP", billingDuration: "P1M", unitCode: "MON" },
+        },
+    ],
+};
 
-    if (!isSupabaseConfigured || user) {
-      router.replace("/dashboard");
-    } else {
-      router.replace("/landing");
-    }
-  }, [user, loading, router]);
-
-  // Splash loader while deciding
-  return (
-    <div
-      className="min-h-dvh flex flex-col items-center justify-center gap-4"
-      style={{ background: "transparent" }}
-    >
-      <DutyDocsLogo size={48} />
-      <Loader2
-        size={20}
-        className="animate-spin"
-        style={{ color: "var(--color-text-muted)" }}
-      />
-    </div>
-  );
+export default function HomePage() {
+    return (
+        <>
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+            <LandingPage />
+        </>
+    );
 }
