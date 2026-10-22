@@ -24,7 +24,7 @@ const AUTH_PAGES = [
 
 export function AppShell({ children }: { children: ReactNode }) {
     const pathname = usePathname();
-    const isAuthPage = AUTH_PAGES.includes(pathname);
+    const isAuthPage = AUTH_PAGES.includes(pathname) || pathname === "/blog" || pathname.startsWith("/blog/");
 
     return (
         <AuthProvider>

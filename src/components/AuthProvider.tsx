@@ -34,6 +34,9 @@ const PUBLIC_ROUTES = [
     "/reset-password",
 ];
 
+const isPublicRoute = (p: string) =>
+    PUBLIC_ROUTES.includes(p) || p === "/blog" || p.startsWith("/blog/");
+
 // Auth-flow pages that signed-in users get bounced away from
 // (legal/contact pages stay reachable when signed in)
 const AUTH_FLOW_ROUTES = ["/login", "/signup", "/landing", "/"];
@@ -67,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (!isSupabaseConfigured || loading) return;
-        const isPublic = PUBLIC_ROUTES.includes(pathname);
+        const isPublic = isPublicRoute(pathname);
 
         if (!user && !isPublic) {
             router.replace("/");
@@ -85,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Loading spinner (only when Supabase is configured). Public pages render
     // immediately so their HTML is server-rendered for visitors and crawlers.
-    if (loading && !PUBLIC_ROUTES.includes(pathname)) {
+    if (loading && !isPublicRoute(pathname)) {
         return (
             <div
                 className="min-h-dvh flex flex-col items-center justify-center gap-4"
@@ -111,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Hide chrome on public pages
-    const isPublic = PUBLIC_ROUTES.includes(pathname);
+    const isPublic = isPublicRoute(pathname);
     if (isPublic) {
         return (
             <AuthContext.Provider value={{ user, loading, signOut }}>

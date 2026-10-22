@@ -107,6 +107,7 @@ export default function LandingPage() {
                         <span className="text-lg font-bold hidden sm:inline" style={{ color: "var(--color-text-primary)" }}>DutyDocs</span>
                     </div>
                     <div className="flex items-center gap-3">
+                        <Link href="/blog" className="btn btn-ghost" style={{ fontSize: "0.8125rem", padding: "0.5rem 1rem" }}>Blog</Link>
                         {user ? (
                             <Link href="/dashboard" className="btn btn-primary" style={{ fontSize: "0.8125rem", padding: "0.5rem 1.25rem" }}>
                                 Go to Dashboard <ArrowRight size={14} />
@@ -482,6 +483,7 @@ export default function LandingPage() {
                         © {new Date().getFullYear()} DutyDocs. All rights reserved.
                     </p>
                     <div className="flex items-center gap-4" style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
+                        <Link href="/blog" style={{ color: "inherit", textDecoration: "none" }}>Blog</Link>
                         <Link href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>Privacy</Link>
                         <Link href="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms</Link>
                         <Link href="/contact" style={{ color: "inherit", textDecoration: "none" }}>Contact</Link>

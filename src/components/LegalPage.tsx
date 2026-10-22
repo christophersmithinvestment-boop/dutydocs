@@ -19,10 +19,12 @@ export function LegalSection({ title, children }: { title: string; children: Rea
 export function LegalPage({
     title,
     updated,
+    subtitle,
     children,
 }: {
     title: string;
-    updated: string;
+    updated?: string;
+    subtitle?: string;
     children: ReactNode;
 }) {
     return (
@@ -46,7 +48,7 @@ export function LegalPage({
             <main className="flex-1 w-full px-6 py-12" style={{ maxWidth: 768, margin: "0 auto" }}>
                 <h1 className="text-3xl font-bold tracking-tight mb-2">{title}</h1>
                 <p className="text-sm mb-4" style={{ color: "var(--color-text-muted)" }}>
-                    Last updated: {updated}
+                    {updated ? `Last updated: ${updated}` : subtitle}
                 </p>
                 <div className="hazard-stripe w-24 mb-10" style={{ height: 3 }} />
                 {children}
@@ -56,6 +58,7 @@ export function LegalPage({
                 <div className="flex items-center justify-between text-[0.8125rem]" style={{ maxWidth: 768, margin: "0 auto", color: "var(--color-text-muted)" }}>
                     <span>© {new Date().getFullYear()} DutyDocs</span>
                     <div className="flex items-center gap-4">
+                        <Link href="/blog" style={{ color: "inherit" }}>Blog</Link>
                         <Link href="/privacy" style={{ color: "inherit" }}>Privacy</Link>
                         <Link href="/terms" style={{ color: "inherit" }}>Terms</Link>
                         <Link href="/contact" style={{ color: "inherit" }}>Contact</Link>
