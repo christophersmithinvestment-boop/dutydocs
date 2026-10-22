@@ -80,8 +80,30 @@ export function getRiskBadgeClass(level: RiskLevel): string {
 }
 
 // Date formatting
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Parse a date value. Date-only strings ("YYYY-MM-DD", as produced by
+ * <input type="date">) are treated as LOCAL dates. `new Date("2026-10-22")`
+ * would treat them as UTC midnight, which can display as the previous day.
+ */
+export function parseLocalDate(date: string | Date): Date {
+  if (date instanceof Date) return new Date(date.getTime());
+  const m = DATE_ONLY.exec(date);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(date);
+}
+
+/** Format a Date as a local "YYYY-MM-DD" string (for date inputs/storage). */
+export function toLocalDateString(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString("en-GB", {
+  return parseLocalDate(date).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -117,7 +139,7 @@ export type ExpiryStatus = "valid" | "expiring" | "expired" | "none";
 
 export function getExpiryStatus(date: string | Date | undefined): ExpiryStatus {
   if (!date) return "none";
-  const d = new Date(date);
+  const d = parseLocalDate(date);
   if (isNaN(d.getTime())) return "none";
 
   const now = new Date();

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Package, ArrowLeft, Trash2, AlertCircle, FileDown, Pencil } from "lucide-react";
-import { generateId, formatDate } from "@/lib/utils";
+import { generateId, formatDate, parseLocalDate } from "@/lib/utils";
 import { DutyDocsPDF, pdfDate, pdfSlug } from "@/lib/pdf-generator";
 import { useModuleData } from "@/hooks/useModuleData";
 import PremiumModuleGuard from "@/components/PremiumModuleGuard";
@@ -140,10 +140,10 @@ export default function AssetRegisterPage() {
         pdf.save(`asset-${slug}.pdf`);
     };
 
-    const isOverdue = (date: string) => date && new Date(date) < new Date();
+    const isOverdue = (date: string) => date && parseLocalDate(date) < new Date();
     const isDueSoon = (date: string) => {
         if (!date) return false;
-        const d = new Date(date);
+        const d = parseLocalDate(date);
         const now = new Date();
         const diff = d.getTime() - now.getTime();
         return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
