@@ -1,11 +1,13 @@
+import Image from "next/image";
+
 /**
  * PLACEHOLDER product visual. Swap for real screenshots under /public/screenshots/
  * by passing `src` (e.g. "/screenshots/rams.png"). Without `src` it renders a tidy
  * mock app frame labelled as a preview.
  */
-type Props = { title: string; src?: string; accent?: string; rows?: number; tall?: boolean };
+type Props = { title: string; src?: string; alt?: string; accent?: string; rows?: number; tall?: boolean };
 
-export function ScreenshotPlaceholder({ title, src, accent = "#14b8a6", rows = 4, tall = false }: Props) {
+export function ScreenshotPlaceholder({ title, src, alt, accent = "#14b8a6", rows = 4, tall = false }: Props) {
     return (
         <div
             aria-label={`${title} preview`}
@@ -21,8 +23,7 @@ export function ScreenshotPlaceholder({ title, src, accent = "#14b8a6", rows = 4
                 <span style={{ marginLeft: 8, fontSize: "0.6875rem", color: "var(--color-text-muted)" }}>{title}</span>
             </div>
             {src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={src} alt={`${title} screenshot`} style={{ width: "100%", display: "block" }} />
+                <Image src={src} alt={alt ?? `${title} screenshot`} width={1012} height={759} sizes="(max-width: 768px) 100vw, 33vw" style={{ width: "100%", height: "auto", display: "block" }} />
             ) : (
                 <div style={{ padding: "1rem", minHeight: tall ? 280 : 140 }} data-placeholder="screenshot">
                     <div style={{ height: 10, width: "45%", borderRadius: 6, background: `${accent}55`, marginBottom: 14 }} />
