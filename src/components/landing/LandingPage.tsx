@@ -13,14 +13,13 @@ import { useSubscription, BILLING_LIVE } from "@/hooks/useSubscription";
 import { ScreenshotPlaceholder } from "@/components/landing/ScreenshotPlaceholder";
 import { StatsLogoStrip, Testimonials } from "@/components/landing/SocialProof";
 
-// PLACEHOLDER visuals: add `src: "/screenshots/<file>.png"` once real screenshots exist.
-const SHOWCASE: { title: string; desc: string; color: string; src?: string }[] = [
-    { title: "RAMS", desc: "Build risk assessments and method statements ready to take on site.", color: "#3b82f6" },
-    { title: "Risk assessments", desc: "5×5 matrix scoring with residual risk tracking.", color: "#f97316" },
-    { title: "COSHH", desc: "Record substances with GHS hazard symbols and controls.", color: "#a855f7" },
-    { title: "Inspections", desc: "Checklist-driven site inspections with scoring.", color: "#10b981" },
-    { title: "Training records", desc: "Store certificates and get warned before they expire.", color: "#14b8a6" },
-    { title: "PPE tracking", desc: "Log PPE issued and keep on top of expiry dates.", color: "#eab308" },
+const SHOWCASE: { title: string; desc: string; color: string; src?: string; alt?: string }[] = [
+    { title: "RAMS", desc: "Build risk assessments and method statements ready to take on site.", color: "#3b82f6", src: "/screenshots/rams.webp", alt: "DutyDocs method statement editor with task details and sequence of work" },
+    { title: "Risk assessments", desc: "5×5 matrix scoring with residual risk tracking.", color: "#f97316", src: "/screenshots/risk.webp", alt: "DutyDocs risk assessment form with hazard description and 5×5 risk rating" },
+    { title: "COSHH", desc: "Record substances with GHS hazard symbols and controls.", color: "#a855f7", src: "/screenshots/coshh.webp", alt: "DutyDocs COSHH record showing GHS hazard symbols and control measures" },
+    { title: "Inspections", desc: "Checklist-driven site inspections with scoring.", color: "#10b981", src: "/screenshots/inspection.webp", alt: "DutyDocs site inspection checklist" },
+    { title: "Training records", desc: "Store certificates and get warned before they expire.", color: "#14b8a6", src: "/screenshots/training.webp", alt: "DutyDocs training records list with certificate expiry dates" },
+    { title: "PPE tracking", desc: "Log PPE issued and keep on top of expiry dates.", color: "#eab308", src: "/screenshots/ppe.webp", alt: "DutyDocs PPE register listing issued items and expiry dates" },
 ];
 
 const FAQS = [
@@ -198,9 +197,8 @@ export default function LandingPage() {
                         <span className="flex items-center gap-1.5"><Zap size={14} /> Works offline (PWA)</span>
                     </div>
 
-                    {/* Hero visual — PLACEHOLDER: pass src="/screenshots/hero.png" when available */}
                     <div style={{ maxWidth: 880, margin: "3.5rem auto 0", textAlign: "left" }}>
-                        <ScreenshotPlaceholder title="DutyDocs dashboard" rows={7} tall />
+                        <ScreenshotPlaceholder title="DutyDocs dashboard" src="/screenshots/dashboard.webp" alt="DutyDocs dashboard with quick tools for risk assessments, COSHH, method statements, inspections, PPE and training records" width={1600} height={660} priority />
                     </div>
 
                     <div className="hazard-stripe" style={{ maxWidth: 220, margin: "2.5rem auto 0" }} />
@@ -222,7 +220,7 @@ export default function LandingPage() {
                 <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
                     {SHOWCASE.map((item) => (
                         <div key={item.title}>
-                            <ScreenshotPlaceholder title={item.title} src={item.src} accent={item.color} />
+                            <ScreenshotPlaceholder title={item.title} src={item.src} alt={item.alt} accent={item.color} />
                             <p style={{ marginTop: "0.875rem", fontWeight: 700 }}>{item.title}</p>
                             <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", lineHeight: 1.5 }}>{item.desc}</p>
                         </div>
