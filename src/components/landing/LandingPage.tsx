@@ -197,9 +197,8 @@ export default function LandingPage() {
                         <span className="flex items-center gap-1.5"><Zap size={14} /> Works offline (PWA)</span>
                     </div>
 
-                    {/* Hero visual — PLACEHOLDER: pass src="/screenshots/hero.png" when available */}
                     <div style={{ maxWidth: 880, margin: "3.5rem auto 0", textAlign: "left" }}>
-                        <ScreenshotPlaceholder title="DutyDocs dashboard" rows={7} tall />
+                        <ScreenshotPlaceholder title="DutyDocs dashboard" src="/screenshots/dashboard.webp" alt="DutyDocs dashboard with quick tools for risk assessments, COSHH, method statements, inspections, PPE and training records" width={1600} height={660} priority />
                     </div>
 
                     <div className="hazard-stripe" style={{ maxWidth: 220, margin: "2.5rem auto 0" }} />
