@@ -8,7 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { TeamInviteModal } from "@/components/TeamInviteModal";
 import { getTeamMembers, TeamMember } from "@/lib/teams";
 import { deleteAllRecords } from "@/lib/database";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useUsage } from "@/components/UsageProvider";
@@ -39,6 +39,19 @@ function SettingsPageContent() {
         autoCheckoutFired.current = true;
         upgrade();
     }, [startPro, user, isStarter, upgrade]);
+    // Back from Stripe checkout: the webhook updates user_metadata on the
+    // server, but the browser session still holds the old plan. Refresh the
+    // session a few times until the plan flips to Pro.
+    useEffect(() => {
+        if (upgradeStatus !== "success" || !user || isPro || !isSupabaseConfigured) return;
+        let tries = 0;
+        const id = setInterval(async () => {
+            tries++;
+            await supabase.auth.refreshSession();
+            if (tries >= 10) clearInterval(id);
+        }, 2000);
+        return () => clearInterval(id);
+    }, [upgradeStatus, user, isPro]);
     const [showTeamModal, setShowTeamModal] = useState(false);
     const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
     const [loadingTeam, setLoadingTeam] = useState(true);
