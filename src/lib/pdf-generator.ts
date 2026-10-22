@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { parseLocalDate } from "@/lib/utils";
 
 // ─── Branding colours ────────────────────────────────────────────
 const BRAND = {
@@ -365,7 +366,7 @@ export function pdfSlug(value: string | undefined, fallback: string = "record"):
 export function pdfDate(date: string | undefined): string {
     if (!date) return "—";
     try {
-        return new Date(date).toLocaleDateString("en-GB", {
+        return parseLocalDate(date).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "short",
             year: "numeric",
